@@ -1,0 +1,117 @@
+.l_container {
+	max-width: 1024px;
+	margin: 0 auto;
+}
+
+// %l_padding {
+// 	transition: padding 0.3s ease;
+// 	padding: incr(2,1.5);
+// 	@include breakpoint(32) {
+// 		padding: incr(2,2);
+// 	}
+// 	@include breakpoint(64) {
+// 		padding: incr(3,3);
+// 	}
+// 	@include breakpoint(85) {
+// 		padding: incr(3.5,3.5);
+// 	}
+// }
+
+@mixin l_container($incr) {
+	> .inner {
+		max-width: incr($incr);
+		margin: 0 auto;
+	}
+}
+
+@mixin l_vmiddle($subclass) {
+	white-space: nowrap;
+	&:before, &#{$subclass} {
+		display: inline-block;
+		vertical-align: middle;
+	}
+	&:before {
+		content: "";
+		width: 0;
+		height: 100%;
+	}
+	&#{$subclass} {
+		white-space: normal;
+		width: 100%;
+	}
+}
+
+// .l_2_col, .l_3_col, .l_4_col {
+// 	@include breakpoint(32) {
+// 		> .col {
+// 			float: left;
+// 			width: 50%;
+// 		}
+// 		@include clearfix;
+// 	}
+// }
+
+// .l_3_col > .col {
+// 	@include breakpoint(48) {
+// 		width: 33.3%;
+// 	}
+// }
+
+// .l_4_col > .col {
+// 	@include breakpoint(64) {
+// 		width: 25%;
+// 	}
+// }
+
+// .l_table {
+// 	&.fixed {
+// 		table-layout: fixed;
+// 	}
+// 	@include breakpoint(48) {
+// 		display: table;
+// 		width: 100%;
+// 		> .col {
+// 			display: table-cell;
+// 			vertical-align: top;
+// 			&:not(:last-child) {
+// 				padding-right: 16px;
+// 			}
+// 		}
+// 		&.vmiddle > .col {
+// 			vertical-align: middle;
+// 		}
+// 	}
+// }
+
+// .l_cols {
+// 	.col {
+// 		display: block;
+// 		float: left;
+// 		width: 100%;
+// 	}
+// 	@include clearfix;
+// 	@include if_exactly(2,'.col') {
+// 		@include breakpoint(32) {
+// 			width: 50%;
+// 		}
+// 	}
+// 	@include if_exactly(3,'.col') {
+// 		@include breakpoint(48) {
+// 			width: 33.33%;
+// 		}
+// 	}
+// 	@include if_exactly(4,'.col') {
+// 		@include breakpoint(32) {
+// 			width: 50%;
+// 			&:nth-child(odd) {
+// 				clear: left;
+// 			}
+// 		}
+// 		@include breakpoint(64) {
+// 			width: 25%;
+// 			&:nth-child(odd) {
+// 				clear: none;
+// 			}
+// 		}
+// 	}
+// }

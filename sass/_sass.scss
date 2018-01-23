@@ -1,0 +1,97 @@
+/* SASS */
+
+// Variables & Placeholders
+
+$incr: 16px;
+%no-list-style { margin: 0; padding: 0; list-style: none; }
+%no-print { @media print { display: none !important; } }
+%no-button-style {
+	font: inherit;
+	border: none;
+	background: none;
+	color: inherit;
+	padding: 0;
+	margin: 0;
+	text-align: inherit;
+	align-items: inherit;
+}
+
+
+// Functions
+
+@function dark($percent) { @return rgba(0,0,0,$percent/100); }
+@function light($percent) { @return rgba(255,255,255,$percent/100); }
+@function incr($amt1,$amt2:null,$amt3:null,$amt4:null) {
+	@if $amt4 { @return $incr*$amt1 $incr*$amt2 $incr*$amt3 $incr*$amt4; }
+	@else if $amt3 { @return $incr*$amt1 $incr*$amt2 $incr*$amt3; }
+	@else if $amt2 { @return $incr*$amt1 $incr*$amt2; }
+	@else { @return $incr*$amt1; }
+}
+
+
+// Mixins
+
+@mixin clearfix { &:before, &:after { content: ""; display: table; } &:after { clear: both; } }
+@mixin hidetext { direction: ltr; display: inline-block; text-indent: -9999em; }
+@mixin hidden { position: absolute; left: -9999em; height: 0; overflow: hidden; }
+@mixin unhidden { position: static; left: auto; height: auto; overflow: visible; }
+@mixin lay_behind {
+	position: relative; z-index: 1;
+	&:after {
+		content: "";
+		position: absolute; z-index: -1;
+		top: 0; bottom: 0; left: 0; right: 0;
+		@content;
+	}
+}
+
+@mixin tracking($amt) { letter-spacing: $amt/1000*1em; }
+
+@mixin linear-gradient($start,$end,$fallback,$image:null) {
+	background: { color: $fallback;
+		@if $image { image: $image, linear-gradient($start,$end); }
+		@else { image: linear-gradient($start,$end); }
+	}
+	@include ms-filter($start,$end);
+}
+
+@mixin pseudo-pos($dir) {
+	content: ""; position: absolute;
+	@if $dir == top { bottom: 100%; }
+	@else if $dir == right { left: 100%; }
+	@else if $dir == bottom { top: 100%; }
+	@else if $dir == left { right: 100%; }
+}
+
+@mixin triangle($dir,$tl,$size,$br,$clr) {
+	@include pseudo-pos($dir); display: block;
+	$a: solid transparent;
+	@if $dir == top {
+		border: { left: $tl $a; bottom: $size solid $clr; right: $br $a; top: 0; }
+	} @else if $dir == right {
+		border: { top: $tl $a; left: $size solid $clr; bottom: $br $a; right: 0; }
+	} @else if $dir == bottom {
+		border: { left: $tl $a; top: $size solid $clr; right: $br $a; bottom: 0; }
+	} @else if $dir == left {
+		border: { top: $tl $a; right: $size solid $clr; bottom: $br $a; left: 0; }
+	}
+}
+
+@mixin breakpoint($incr) {
+	@if $incr < 0 {
+		@media (max-width: incr(-$incr) - 1) {
+			@content;
+		}
+	} @else {
+		@media (min-width: incr($incr)) {
+			@content;
+		}
+	}
+}
+
+@mixin if_exactly($num,$selector) {
+	> #{$selector}:first-child:nth-last-child(#{$num}) ~ #{$selector},
+	> #{$selector}:first-child:nth-last-child(#{$num}) {
+		@content;
+	}
+}

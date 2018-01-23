@@ -1,0 +1,109 @@
+// all should have _id_(INT), _created_at_(DATETIME), _updated_at_(DATETIME), _active_(BOOL) and _deleted_at_(DATETIME) (only soft deletes)
+var recipes = [
+	{
+		id               : INT,
+		uid              : VARCHAR(6),
+		created_at       : DATETIME,
+		updated_at     : DATETIME,
+		deleted_at     : DATETIME,
+		active           : BOOL,
+
+		name             : VARCHAR(255),
+		notes            : VARCHAR(4000),
+		lye_type         : VARCHAR(4), // 'NaOH|KOH|Mix'
+		lye_discount     : FLOAT,
+		liquid_lye_ratio : FLOAT,
+		oils             : JSON('[
+			{
+				oil_id : 0, // FK
+				weight : 0, // use grams and don't worry about fractions (can use the faster/more precise INT instead of FLOAT)
+				pos    : 0
+			},
+			//{ // no custom entries; must be added to oils table before use;
+			//	name   : '',
+			//	sap    : 0.0,
+			//	weight : 0,
+			//	pos    : 0
+			//}...
+		]'),
+		liquids          : JSON('[
+			{
+				name    : '',
+				percent : 1 // percent of all liquids (if >1)
+			}
+		]'),
+		additives        : JSON('[
+			{
+				additive_id : 0, // FK
+				weight      : 0.0,
+				pos         : 0
+			},
+			{ // custom entries
+				name        : '',
+				weight      : 0.0,
+				pos         : 0
+			}...
+		]')
+	}...
+];
+
+var oils = [
+	{
+		id           : INT,
+		uid          : VARCHAR(6),
+		created_at   : DATETIME,
+		updated_at   : DATETIME,
+		deleted_at   : DATETIME,
+		active       : BOOL,
+
+		name         : VARCHAR(255),
+		sap          : FLOAT
+	}...
+];
+
+var batches = [
+	{
+		id           : INT,
+		uid          : VARCHAR(6),
+		created_at   : DATETIME,
+		updated_at   : DATETIME,
+		deleted_at   : DATETIME,
+		active       : BOOL,
+
+		recipe_id    : INT, // FK
+		user_id      : INT,
+		batch_number : INT,
+		made_at      : DATETIME,
+		notes        : VARCHAR(4000)
+	}...
+];
+
+var additives = [
+	{
+		id           : INT,
+		uid          : VARCHAR(6),
+		created_at   : DATETIME,
+		updated_at   : DATETIME,
+		deleted_at   : DATETIME,
+		active       : BOOL,
+
+		name         : VARCHAR(255)
+	}...
+];
+
+var supplies = [
+	{
+		...,
+		cost   : FLOAT,
+		source : VARCHAR(255),
+		...
+	}...
+];
+
+var inventory = [
+	{
+		...,
+		price : FLOAT,
+		...
+	}...
+];

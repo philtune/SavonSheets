@@ -1,0 +1,33 @@
+@media (min-width: 1024px) {
+	.u_mobile_only { display: none !important; }
+}
+@media (max-width: 1023px) {
+	.u_desktop_only { display: none !important; }
+}
+
+.u_accent {
+	color: $accent_clr;
+}
+
+.u_cta {
+	display: inline-block;
+	text-decoration: none;
+	border: 0;
+	text-transform: uppercase;
+	font-size: 20px;
+	line-height: 24px;
+	font-weight: bold;
+	background-color: $accent_clr;
+	&:hover, &:focus {
+		background-color: darken($accent_clr, 8);
+	}
+	&.light {
+		background-color: white;
+		color: $accent_clr;
+		&:hover, &:focus {
+			background-color: darken(white, 8);
+		}
+	}
+	color: white;
+	padding: 28px 56px;
+}

@@ -1,0 +1,33 @@
+/* RESET */
+
+html { box-sizing: border-box } *,*:before,*:after { box-sizing: inherit }
+
+body {
+	margin: 0;
+}
+
+img {
+	border: 0;
+}
+
+h1, h2, h3, h4, p, ul, ol, table, figure, article {
+	margin: 1.2em 0;
+	&:first-child { margin-top: 0; }
+	&:last-child { margin-bottom: 0; }
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	&.fixed {
+		table-layout: fixed;
+	}
+}
+
+.offscreen {
+	@include hidden;
+}
+
+small {
+	font-size: 0.85em;
+}

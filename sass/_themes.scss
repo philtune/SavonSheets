@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css?family=Open+Sans:300,700');
+// $primary_dark_bg       : #063d65;
+// $secondary_dark_bg     : #10263F;
+// $primary_dark_hvr      : #062540;
+// $light_clr             : #FFFFFF;
+// $dark_clr              : #09355B;
+// $block_nav_bg          : #043456;
+// $primary_content_bg    : #FFFFFF;
+// $primary_content_clr   : #555555;
+// $alternate_content_bg  : #DDDDDD;
+// $secondary_content_clr : #333333;
+$accent_clr   : #ef4136;
+$heading_font : 'garvis-pro', serif;
+$body_font    : 'Open Sans', sans-serif;
+
+body {
+	font-family: $body_font;
+	background: #2c2c2c;
+	color: white;
+	a {
+		color: inherit;
+		text-decoration: underline;
+		&:hover, &:focus {
+			text-decoration: none;
+		}
+	}
+	@include tracking(50);
+}
+
+.t_heading {
+	font-family: $heading_font;
+}
+
+p {
+	font-family: $body_font;
+	font-size: 20px;
+	line-height: 1.5em;
+	margin: 1.5em auto;
+}
+
+.t_icon {
+	display: inline-block;
+	text-indent: -9999px;
+	background: no-repeat center;
+	&.down_arrow {
+		height: 86px;
+		width: 86px;
+		background-image: url(/img/icon-down_arrow.png);
+	}
+	&.facebook, &.google_plus, &.linked_in {
+		height: 40px;
+		width: 40px;
+	}
+	&.facebook {
+		background-image: url(/img/icon-facebook.png);
+	}
+	&.google_plus {
+		background-image: url(/img/icon-google_plus.png);
+	}
+	&.linked_in {
+		background-image: url(/img/icon-linked_in.png);
+	}
+}
