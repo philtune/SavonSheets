@@ -26,7 +26,6 @@ var UI = {
 
         $(function(){
            var $container = $(table_info[0]).html('');
-           //todo: UI should not have access to Data. app should probably be it.
            $.each(Data.get_table(table), function(uid, data){
                data = $.extend(true, {}, data);
 
