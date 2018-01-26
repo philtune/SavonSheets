@@ -312,7 +312,7 @@ function Recipe() {
 	}, recipe_methods.save);
 
 
-	window.recipe_instance = app.createInstance(data, {
+	window.recipe_instance = instance_maker.create(data, tmp_data, {
 
 		copy: function () {
 			uid = create_uid(3, Data.get_table('recipe'));
@@ -345,54 +345,48 @@ function Recipe() {
 
 		name: { is_string: true },
 		note: { is_string: true },
-		lye_type: { set: function(val) { return ( val < 0 || val > 2 ) ? 0 : val } },
 		percent_naoh: { default: 1 },
 		lye_discount: {},
 		liquid_lye_ratio: { default: 1 },
-		total_oils_weight: {
-			update: function(require) { return require('oils.weight') }
-		},
+		lye_type: { set: function(val) { return ( val < 0 || val > 2 ) ? 0 : val } },
+		total_oils_weight: { update: function(require) { return require('oils.weight') } },
 		_total_liquids_weight: {
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false,
-			update: function(require) {
-				return require(['_total_naoh_weight', '_total_koh_weight']) * require('liquid_lye_ratio')
-			}
+			update: function(require) { return require(['_total_naoh_weight', '_total_koh_weight']) * require('liquid_lye_ratio') }
 		},
 		_total_additives_weight: {
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false,
-			update: function(require) {
-				return require('additives.weight');
-			}
+			update: function(require) { return require('additives.weight') }
 		},
 		_total_oils_percent: {
 			default: 1,
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false,
 			update: function(require) { return require('oils.percent') }
 		},
 		_total_naoh_weight: {
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false,
 			update: function(require) {
 				return [1, 0, require('percent_naoh')][require('lye_type')] * require('oils._naoh_weight') * (1-require('lye_discount'))
 			}
 		},
 		_total_koh_weight: {
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false,
 			update: function(require) {
 				return [0, 1, 1-require('percent_naoh')][require('lye_type')] * require('oils._koh_weight') * (1-require('lye_discount'))
 			}
 		},
 		_total_liquids_parts: {
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false,
 			update: function(require) { return require('liquids.parts') }
 		},
 		total_recipe_weight: {
-			data_obj: tmp_data,
+			is_tmp: true,
 			set: false, //todo
 			update: function(require) {
 				return require([

@@ -27,7 +27,8 @@ function Oil(uid)
     if ( uid !== undefined ) {
         data = Data.get_table_row('oil', uid);
         if ( !data ) {
-            throw new Error('Oil(\''+uid+'\') does not exist');
+            console.log('Oil(\''+uid+'\') does not exist');
+            return {};
         }
     } else {
 	    uid = create_uid(3, Data.get_table('recipe'));
