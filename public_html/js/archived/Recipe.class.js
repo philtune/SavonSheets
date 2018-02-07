@@ -175,7 +175,150 @@ function Recipe() {
 
 	// Instance public methods
 
-	var instance = {
+	// var instance = {
+	//
+	// 	copy: function () {
+	// 		uid = create_uid(3, Data.get_table('recipe'));
+	// 		data.uid = uid;
+	// 		data.name += ' (Copy)';
+	// 		data.created_at = new Date();
+	// 		recipe_methods.save();
+	// 		return this;
+	// 	},
+	//
+	// 	delete: function () {
+	// 		if ( confirm('Are you sure you want to delete this recipe?') )
+	// 			Data.delete_table_row('recipe', uid);
+	// 		recipe_methods.show();
+	// 		return window.recipe = instance = {};
+	// 	},
+	//
+	// 	oil: function (oil_uid) {
+	// 		return RecipeOil(oil_uid, data, tmp_data, recipe_methods);
+	// 	},
+	//
+	// 	liquid: function (liquid_uid) {
+	// 		return RecipeLiquid(liquid_uid, data, tmp_data, recipe_methods);
+	// 	},
+	//
+	// 	additive: function (additive_uid) {
+	// 		// todo:
+	// 		// return RecipeAdditive(additive_uid, data, tmp_data, recipe_methods);
+	// 	}
+	//
+	// };
+
+
+	// app.defineInstanceProps(instance, {
+	// 	name : {
+	// 		is_string: true,
+	// 		data_obj: data
+	// 	},
+	// 	note: {
+	// 		is_string: true,
+	// 		data_obj: data
+	// 	},
+	// 	lye_type: {
+	// 		default: 0, // [0:'NaOH',1:'KOH',2:'Mix']
+	// 		data_obj: data,
+	// 		set: function(val) {
+	// 			data.lye_type = ( val < 0 || val > 2 ) ? 0 : val;
+	// 		},
+	// 		complete: function() {
+	// 			recipe_methods
+	// 				.updateRecipeOilsLyesWeight()
+	// 				.updateTotalLyesWeight()
+	// 				.updateTotalLiquidsWeight()
+	// 				.updateRecipeLiquidsWeight()
+	// 				.updateTotalRecipeWeight();
+	// 		}
+	// 	},
+	// 	percent_naoh: {
+	// 		default: 1,
+	// 		data_obj: data,
+	// 		complete: function() {
+	// 			recipe_methods
+	// 				.updateRecipeOilsLyesWeight()
+	// 				.updateTotalLyesWeight()
+	// 				.updateTotalLiquidsWeight()
+	// 				.updateRecipeLiquidsWeight()
+	// 				.updateTotalRecipeWeight();
+	// 		}
+	// 	},
+	// 	lye_discount: {
+	// 		data_obj: data,
+	// 		complete: function() {
+	// 			recipe_methods
+	// 				.updateRecipeOilsLyesWeight()
+	// 				.updateTotalLyesWeight()
+	// 				.updateTotalLiquidsWeight()
+	// 				.updateRecipeLiquidsWeight()
+	// 				.updateTotalRecipeWeight();
+	// 		}
+	// 	},
+	// 	liquid_lye_ratio: {
+	// 		default: 1,
+	// 		data_obj: data,
+	// 		complete: function() {
+	// 			recipe_methods
+	// 				.updateTotalLiquidsWeight()
+	// 				.updateRecipeLiquidsWeight()
+	// 				.updateTotalRecipeWeight();
+	// 		}
+	// 	},
+	// 	total_oils_weight: {
+	// 		data_obj: data,
+	// 		complete: function() {
+	// 			recipe_methods
+	// 				.updateRecipeOilsWeights()
+	// 				.updateRecipeOilsLyesWeight()
+	// 				.updateTotalLyesWeight()
+	// 				.updateTotalLiquidsWeight()
+	// 				.updateRecipeLiquidsWeight()
+	// 				.updateTotalRecipeWeight();
+	// 		}
+	// 	},
+	// 	_total_liquids_weight: {
+	// 		data_obj: tmp_data,
+	// 		set: false
+	// 	},
+	// 	_total_additives_weight: {
+	// 		data_obj: tmp_data,
+	// 		set: false
+	// 	},
+	// 	total_recipe_weight: {
+	// 		data_obj: tmp_data,
+	// 		set: function(val) {
+	// 			//todo
+	// 		}
+	// 	},
+	// 	_total_oils_percent: {
+	// 		default: 1,
+	// 		data_obj: tmp_data,
+	// 		set: false
+	// 	},
+	// 	_total_naoh_weight: {
+	// 		data_obj: tmp_data,
+	// 		set: false
+	// 	},
+	// 	_total_koh_weight: {
+	// 		data_obj: tmp_data,
+	// 		set: false
+	// 	},
+	// 	_total_liquids_parts: {
+	// 		data_obj: tmp_data,
+	// 		set: false
+	// 	}
+	// }, recipe_methods.save);
+
+	var instance_properties = {
+
+		save: function() {
+			data.updated_at = new Date();
+			Data.update_table_row('recipe', uid, data);
+			recipe_methods.show();
+			return this;
+		},
 
 		copy: function () {
 			uid = create_uid(3, Data.get_table('recipe'));
@@ -190,144 +333,7 @@ function Recipe() {
 			if ( confirm('Are you sure you want to delete this recipe?') )
 				Data.delete_table_row('recipe', uid);
 			recipe_methods.show();
-			return window.recipe = instance = {};
-		},
-
-		oil: function (oil_uid) {
-			return RecipeOil(oil_uid, data, tmp_data, recipe_methods);
-		},
-
-		liquid: function (liquid_uid) {
-			return RecipeLiquid(liquid_uid, data, tmp_data, recipe_methods);
-		},
-
-		additive: function (additive_uid) {
-			// todo:
-			// return RecipeAdditive(additive_uid, data, tmp_data, recipe_methods);
-		}
-
-	};
-
-
-	app.defineInstanceProps(instance, {
-		name : {
-			is_string: true,
-			data_obj: data
-		},
-		note: {
-			is_string: true,
-			data_obj: data
-		},
-		lye_type: {
-			default: 0, // [0:'NaOH',1:'KOH',2:'Mix']
-			data_obj: data,
-			set: function(val) {
-				data.lye_type = ( val < 0 || val > 2 ) ? 0 : val;
-			},
-			complete: function() {
-				recipe_methods
-					.updateRecipeOilsLyesWeight()
-					.updateTotalLyesWeight()
-					.updateTotalLiquidsWeight()
-					.updateRecipeLiquidsWeight()
-					.updateTotalRecipeWeight();
-			}
-		},
-		percent_naoh: {
-			default: 1,
-			data_obj: data,
-			complete: function() {
-				recipe_methods
-					.updateRecipeOilsLyesWeight()
-					.updateTotalLyesWeight()
-					.updateTotalLiquidsWeight()
-					.updateRecipeLiquidsWeight()
-					.updateTotalRecipeWeight();
-			}
-		},
-		lye_discount: {
-			data_obj: data,
-			complete: function() {
-				recipe_methods
-					.updateRecipeOilsLyesWeight()
-					.updateTotalLyesWeight()
-					.updateTotalLiquidsWeight()
-					.updateRecipeLiquidsWeight()
-					.updateTotalRecipeWeight();
-			}
-		},
-		liquid_lye_ratio: {
-			default: 1,
-			data_obj: data,
-			complete: function() {
-				recipe_methods
-					.updateTotalLiquidsWeight()
-					.updateRecipeLiquidsWeight()
-					.updateTotalRecipeWeight();
-			}
-		},
-		total_oils_weight: {
-			data_obj: data,
-			complete: function() {
-				recipe_methods
-					.updateRecipeOilsWeights()
-					.updateRecipeOilsLyesWeight()
-					.updateTotalLyesWeight()
-					.updateTotalLiquidsWeight()
-					.updateRecipeLiquidsWeight()
-					.updateTotalRecipeWeight();
-			}
-		},
-		_total_liquids_weight: {
-			data_obj: tmp_data,
-			set: false
-		},
-		_total_additives_weight: {
-			data_obj: tmp_data,
-			set: false
-		},
-		total_recipe_weight: {
-			data_obj: tmp_data,
-			set: function(val) {
-				//todo
-			}
-		},
-		_total_oils_percent: {
-			default: 1,
-			data_obj: tmp_data,
-			set: false
-		},
-		_total_naoh_weight: {
-			data_obj: tmp_data,
-			set: false
-		},
-		_total_koh_weight: {
-			data_obj: tmp_data,
-			set: false
-		},
-		_total_liquids_parts: {
-			data_obj: tmp_data,
-			set: false
-		}
-	}, recipe_methods.save);
-
-
-	window.recipe_instance = instance_maker.create(data, tmp_data, {
-
-		copy: function () {
-			uid = create_uid(3, Data.get_table('recipe'));
-			data.uid = uid;
-			data.name += ' (Copy)';
-			data.created_at = new Date();
-			recipe_methods.save();
-			return this;
-		},
-
-		delete: function () {
-			if ( confirm('Are you sure you want to delete this recipe?') )
-				Data.delete_table_row('recipe', uid);
-			recipe_methods.show();
-			return window.recipe = instance = {};
+			return window.recipe_instance = {};
 		},
 
 		oil: function (oil_uid) {
@@ -399,18 +405,20 @@ function Recipe() {
 			}
 		}
 
-	}, recipe_methods.save);
+	};
+
+	window.recipe_instance = instance_maker.create(data, tmp_data, instance_properties, recipe_methods.save);
 
 
 	// Init
 
 	// Build up tmp_data for UI.out_recipe_tmp
 	$.each(data.oils, function(key) {
-		instance.oil(key);
+		recipe_instance.oil(key);
 	});
 	data.oils = app.fixObjOrder(data.oils);
 	$.each(data.liquids, function(key) {
-		instance.liquid(key);
+		recipe_instance.liquid(key);
 	});
 	data.liquids = app.fixObjOrder(data.liquids);
 	// todo:
@@ -433,5 +441,5 @@ function Recipe() {
 
 		.show();
 
-	return window['recipe'] = instance;
+	return window['recipe'] = recipe_instance;
 }

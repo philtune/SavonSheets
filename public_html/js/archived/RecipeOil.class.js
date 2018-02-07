@@ -42,92 +42,92 @@ function RecipeOil(uid, data, tmp_data, recipe_methods)
 
     // Instance public methods
 
-    var instance = {
-        delete: function() {
-            delete data.oils[uid];
-            delete tmp_data.oils[uid];
-            data.oils = app.fixObjOrder(data.oils);
-            recipe_methods.save();
-        }
-    };
+    // var instance = {
+    //     delete: function() {
+    //         delete data.oils[uid];
+    //         delete tmp_data.oils[uid];
+    //         data.oils = app.fixObjOrder(data.oils);
+    //         recipe_methods.save();
+    //     }
+    // };
+    //
+    // app.defineInstanceProps(instance, {
+	 //    pos: {
+		//     default: Object.keys(data.oils).length-1,
+		//     data_obj: data.oils[uid],
+		//     set: function(val) {
+		// 	    app.change_pos(data.oils, uid, val);
+		//     }
+	 //    },
+	 //    oil_id: {
+		//     default: '',
+		//     is_string: true,
+		//     data_obj: data.oils[uid],
+		//     complete: function() {
+		// 	    console.log(data.oils[uid]);
+		// 	    recipe_oil_methods
+		// 		    .updateThisById();
+		// 	    recipe_methods
+		// 		    .updateRecipeOilsLyesWeight()
+		// 		    .updateTotalLyesWeight()
+		// 		    .updateTotalLiquidsWeight()
+		// 		    .updateRecipeLiquidsWeight()
+		// 		    .updateTotalRecipeWeight();
+		//     }
+	 //    },
+	 //    _name: {
+		//     default: '',
+		//     data_obj: tmp_data.oils[uid],
+		//     set: false
+	 //    },
+	 //    _naoh_sap: {
+		//     default: 0,
+		//     data_obj: tmp_data.oils[uid],
+		//     set: false
+	 //    },
+	 //    _koh_sap: {
+		//     default: 0,
+		//     data_obj: tmp_data.oils[uid],
+		//     set: false
+	 //    },
+	 //    percent: {
+		//     data_obj: data.oils[uid],
+		//     set: function(val) {
+		// 	    data.oils[uid].percent = app.round(val, 4);
+		//     },
+		//     complete: function() {
+		// 	    tmp_data.oils[uid].weight = data.total_oils_weight * data.oils[uid].percent;
+		// 	    recipe_methods.updateTotalOilsPercent();
+		//     }
+	 //    },
+	 //    weight: {
+		//     default: data.total_oils_weight * data.oils[uid].percent,
+		//     data_obj: tmp_data.oils[uid],
+		//     complete: function() {
+		// 	    recipe_methods
+		// 		    .updateRecipeOilsLyesWeight()
+		// 		    .updateTotalLyesWeight()
+		// 		    .updateTotalLiquidsWeight()
+		// 		    .updateRecipeLiquidsWeight()
+		// 		    .updateTotalRecipeWeight()
+    //
+		// 		    .updateTotalOilsWeight()
+		// 		    .updateRecipeOilsPercent();
+		//     }
+	 //    },
+	 //    _naoh_weight: {
+    //     	default: 0,
+		//     data_obj: tmp_data.oils[uid],
+		//     set: false
+	 //    },
+	 //    _koh_weight: {
+    //     	default: 0,
+		//     data_obj: tmp_data.oils[uid],
+		//     set: false
+	 //    }
+    // }, recipe_methods.save);
 
-    app.defineInstanceProps(instance, {
-	    pos: {
-		    default: Object.keys(data.oils).length-1,
-		    data_obj: data.oils[uid],
-		    set: function(val) {
-			    app.change_pos(data.oils, uid, val);
-		    }
-	    },
-	    oil_id: {
-		    default: '',
-		    is_string: true,
-		    data_obj: data.oils[uid],
-		    complete: function() {
-			    console.log(data.oils[uid]);
-			    recipe_oil_methods
-				    .updateThisById();
-			    recipe_methods
-				    .updateRecipeOilsLyesWeight()
-				    .updateTotalLyesWeight()
-				    .updateTotalLiquidsWeight()
-				    .updateRecipeLiquidsWeight()
-				    .updateTotalRecipeWeight();
-		    }
-	    },
-	    _name: {
-		    default: '',
-		    data_obj: tmp_data.oils[uid],
-		    set: false
-	    },
-	    _naoh_sap: {
-		    default: 0,
-		    data_obj: tmp_data.oils[uid],
-		    set: false
-	    },
-	    _koh_sap: {
-		    default: 0,
-		    data_obj: tmp_data.oils[uid],
-		    set: false
-	    },
-	    percent: {
-		    data_obj: data.oils[uid],
-		    set: function(val) {
-			    data.oils[uid].percent = app.round(val, 4);
-		    },
-		    complete: function() {
-			    tmp_data.oils[uid].weight = data.total_oils_weight * data.oils[uid].percent;
-			    recipe_methods.updateTotalOilsPercent();
-		    }
-	    },
-	    weight: {
-		    default: data.total_oils_weight * data.oils[uid].percent,
-		    data_obj: tmp_data.oils[uid],
-		    complete: function() {
-			    recipe_methods
-				    .updateRecipeOilsLyesWeight()
-				    .updateTotalLyesWeight()
-				    .updateTotalLiquidsWeight()
-				    .updateRecipeLiquidsWeight()
-				    .updateTotalRecipeWeight()
-
-				    .updateTotalOilsWeight()
-				    .updateRecipeOilsPercent();
-		    }
-	    },
-	    _naoh_weight: {
-        	default: 0,
-		    data_obj: tmp_data.oils[uid],
-		    set: false
-	    },
-	    _koh_weight: {
-        	default: 0,
-		    data_obj: tmp_data.oils[uid],
-		    set: false
-	    }
-    }, recipe_methods.save);
-
-    window.recipe_oil_instance = instance_maker.create(data, tmp_data, {
+    var instance_properties = {
 
 	    delete: function() {
 		    delete data.oils[uid];
@@ -149,13 +149,12 @@ function RecipeOil(uid, data, tmp_data, recipe_methods)
 		    }
 	    },
 	    _name: {
-	    	is_string: true,
-		    data_obj: tmp_data,
+		    is_string: true,
 		    is_tmp: true,
 		    set: false,
 		    update: function(require) {
-	    		var oil_id = require('this.oil_id');
-			    if ( oil_id !== null && oil_id !== '' ) {
+			    var oil_id = require('this.oil_id');
+			    if ( oil_id !== undefined ) { // when dependencies are being recorded
 				    //todo: front-load all Oil()s on init so this doesn't have to be called more than once
 				    var oil_instance = Oil(oil_id);
 				    if ( $.isEmptyObject(oil_instance) || !oil_instance.hasOwnProperty('name') ) return '';
@@ -164,13 +163,12 @@ function RecipeOil(uid, data, tmp_data, recipe_methods)
 		    }
 	    },
 	    _naoh_sap: {
-		    data_obj: tmp_data,
 		    is_tmp: true,
 		    set: false,
 		    update: function(require) {
 			    var oil_id = require('this.oil_id');
-			    if ( oil_id !== null && oil_id !== '' ) {
-			    	//see to-do on _name
+			    if ( oil_id !== undefined ) { // when dependencies are being recorded
+				    //see to-do on _name
 				    var oil_instance = Oil(oil_id);
 				    if ( $.isEmptyObject(oil_instance) || !oil_instance.hasOwnProperty('naoh_sap') ) return false;
 				    else return oil_instance.naoh_sap;
@@ -178,13 +176,12 @@ function RecipeOil(uid, data, tmp_data, recipe_methods)
 		    }
 	    },
 	    _koh_sap: {
-		    data_obj: tmp_data,
 		    is_tmp: true,
 		    set: false,
 		    update: function(require) {
 			    var oil_id = require('this.oil_id');
-			    if ( oil_id !== null && oil_id !== '' ) {
-			    	//see to-do on _name
+			    if ( oil_id !== undefined ) { // when dependencies are being recorded
+				    //see to-do on _name
 				    var oil_instance = Oil(oil_id);
 				    if ( $.isEmptyObject(oil_instance) || !oil_instance.hasOwnProperty('koh_sap') ) return false;
 				    else return oil_instance.koh_sap;
@@ -193,24 +190,23 @@ function RecipeOil(uid, data, tmp_data, recipe_methods)
 	    },
 	    weight: {
 		    default: data.total_oils_weight * data.oils[uid].percent,
-		    data_obj: tmp_data,
 		    is_tmp: true,
 		    update: function(require) { return require('total_oils_weight') * require('this.percent') }
 	    },
 	    _naoh_weight: {
-		    data_obj: tmp_data,
 		    is_tmp: true,
 		    set: false,
 		    update: function(require) { return require('this.weight') * require('this._naoh_sap') }
 	    },
 	    _koh_weight: {
-		    data_obj: tmp_data,
 		    is_tmp: true,
 		    set: false,
 		    update: function(require) { return require('this.weight') * require('this._koh_sap') }
 	    }
 
-    }, recipe_methods.save, 'oils', uid);
+    };
+
+    window.recipe_oil_instance = instance_maker.create(data, tmp_data, instance_properties, recipe_methods.save, 'oils', uid);
 
 
 	// Init
@@ -227,7 +223,6 @@ function RecipeOil(uid, data, tmp_data, recipe_methods)
     UI.out_recipe(UI.toJSON(data));
     UI.out_recipe_tmp(UI.toJSON(tmp_data));
 
-    window.recipe_oil = instance;
 
-    return instance;
+    return window.recipe_oil = recipe_oil_instance;
 }

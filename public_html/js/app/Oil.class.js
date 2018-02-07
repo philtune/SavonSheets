@@ -38,7 +38,7 @@ function Oil(uid)
 		    naoh_sap: 0,
 		    koh_sap: 0
 	    };
-        oil_methods.save();
+	    // oil_methods.save(); fixme
     }
 
     app.defineInstanceProps(instance, {

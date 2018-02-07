@@ -2,16 +2,16 @@ var Data = {
 
     get_table : function(table)
     {
-        var _return = {},
+        var result = {},
             substr = table+'[',
             substr_len = substr.length;
         $.each(Object.keys(localStorage), function(){
             if ( this.substr(0,substr_len) === substr ) {
                 var item = JSON.parse(localStorage.getItem(this));
-                _return[item.uid] = item;
+                result[item.uid] = item;
             }
         });
-        return _return;
+        return result;
     },
 
     get_table_row : function(table, uid)

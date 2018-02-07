@@ -1,4 +1,4 @@
-function RecipeLiquid(uid, data, tmp_data, recipe_methods)
+function RecipeLiquid(recipe_instance, uid, data, tmp_data, recipe_methods)
 {
 	// Instance constructor
 
@@ -8,7 +8,7 @@ function RecipeLiquid(uid, data, tmp_data, recipe_methods)
 	} else { // create new liquid
 		uid = create_uid(3, data.liquids);
 		data.liquids[uid] = {};
-		recipe_methods.save();
+		// recipe_methods.save(); fixme
 	}
 	tmp_data.liquids[uid] = {};
 
