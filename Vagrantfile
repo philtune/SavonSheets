@@ -3,7 +3,7 @@
 
 # CONFIGURATION
 Box_Ip = "192.168.10.14"
-Box_Hostname = "savonsheets.test"
+Box_Hostname = "savonsheets.local"
 Public_Dir = "public_html" # in same directory as this file
 Databases = {"magento" => "magento_seed.sql", "dsx" => ""} # in same directory as this file
 

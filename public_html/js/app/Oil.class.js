@@ -2,17 +2,13 @@ function Oil(uid)
 {
 	var data = {};
 
-	var oil_methods = {
+	var instance = {
+
 		save: function() {
 			Data.update_table_row('oil', uid, data);
 			UI.list_oils();
 			UI.out_oil(UI.toJSON(data));
-		}
-	};
-
-	var instance = {
-
-		save: oil_methods.save,
+		},
 
 		delete : function() {
 			if ( confirm('Are you sure you want to delete this oil?') ) {
