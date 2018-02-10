@@ -1,4 +1,16 @@
- function _dataControls(label, new_arr)
+/**
+ * Throw error if type mismatch
+ * @param {*} val - The variable to be checked
+ * @param {string} type - The type to be compared
+ * @param {boolean} [check_defined] - Should val also be defined?
+ */
+function typeCheck(val, type, check_defined) {
+	var defined = ( check_defined ) ? ( val !== undefined ) : true;
+	if ( !defined || typeof val !== type )
+		throw new Error('Expecting '+type+', received '+(typeof val));
+}
+
+function _dataControls(label, new_arr)
 {
 	data_controls = jQuery.extend(getGlobalVar('data_'+label, {}), new_arr);
 	
