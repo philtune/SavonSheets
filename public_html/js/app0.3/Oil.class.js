@@ -1,23 +1,17 @@
 function Oil(uid)
 {
 	var data_obj = {};
+	if ( uid !== undefined ) {
+		data_obj = Data.get_table_row('oil', uid);
+		if ( !data_obj )
+			throw new Error('Oil(\''+uid+'\') does not exist');
+	} else {
+		uid = create_uid(3, Data.get_table('oil'));
+	}
 
 	var oil_calc = new Calculr({
-		data_obj: function() {
-			if ( uid !== undefined ) {
-				data_obj = Data.get_table_row('oil', uid);
-				if ( !data_obj )
-					throw new Error('Oil(\''+uid+'\') does not exist');
-			} else {
-				uid = create_uid(3, Data.get_table('oil'));
-			}
-			data_obj.uid = uid;
-			data_obj.created_at = data_obj.created_at || new Date();
-			data_obj.updated_at = data_obj.updated_at || new Date();
-			data_obj.deleted_at = data_obj.deleted_at || null;
-			return data_obj;
-		},
-		static_data: {//todo
+		data_obj: data_obj,
+		static_data: {
 			uid: uid,
 			created_at: new Date(),
 			updated_at: new Date(),
@@ -52,7 +46,7 @@ function Oil(uid)
 				return this;
 			}
 		},
-		controls: { // controller properties - will have setter and getter defined, fully validated and smart defaults set
+		controls: {
 			name: {
 				type: 'string'
 			},
@@ -65,38 +59,21 @@ function Oil(uid)
 					return App.round(require('naoh_sap') * App.constants.koh_naoh_ratio, 4);
 				}
 			},
-			naoh_sap: { // one of these should be tmp_data since it can be calculated from the other
+			naoh_sap: {
 				type: 'number',
-				// is_tmp: true, //may be easier to list if this data stays in data_obj
-				set: function(val) { // passed setter value, returns validated
+				set: function(val) {
 					return App.round(val, 4);
 				},
-				update: function(require) { // returns value; will be called when dependency is itself updated
+				update: function(require) {
 					return require('koh_sap') / App.constants.koh_naoh_ratio;
-				}
-			},
-			tmp_naoh_sap: {
-				type: 'number',
-				is_tmp: true,
-				update: function(require) {
-					return require('naoh_sap') / 2;
-				}
-			},
-			tmp_koh_sap: {
-				type: 'number',
-				is_tmp: true,
-				update: function(require) {
-					return require('tmp_naoh_sap') * 8;
 				}
 			}
 		},
-		finally_func: function(Calculr_instance) { // called after all updates are finished; 'this' references Calculr_instance.controller
-			console.log(Calculr_instance.tmp_data_obj);
+		finally_func: function() {
 			this.save();
 		}
 	}).init(function(controller) {
 		controller.list();
-		console.log(this.tmp_data_obj);
 	});
 
 	return oil_calc.controller;
