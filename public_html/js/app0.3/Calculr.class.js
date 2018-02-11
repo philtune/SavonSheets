@@ -1,13 +1,17 @@
 /**
  * @param {object} args
- * @returns {{data_obj: {}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, finally_func: null, addStaticData: Window.Calculr_instance.addStaticData, addControls: Window.Calculr_instance.addControls, addFinally: Window.Calculr_instance.addFinally, init: Window.Calculr_instance.init}}
+ * @returns {{data_obj: {}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, finally_func: null, addStaticData: addStaticData, addControls: addControls, init: init}}
  * @constructor
  */
 function Calculr(args)
 {
 	typeCheck(args, 'object', true);
 
-	var data_obj = args.data_obj || {};
+	var data_obj = args.data_obj || {},
+		tmp_data_obj = args.tmp_data_obj || {},
+		controller = args.controller || {},
+		tmp_controls = args.tmp_controls || [],
+		finally_func = args.finally_func || null;
 
 	if ( typeof data_obj === 'function' ) {
 		var result = data_obj.apply(this, []);
@@ -63,15 +67,15 @@ function Calculr(args)
 		});
 	}
 
-	var Calculr_instance = window.Calculr_instance = {
-		data_obj: data_obj || {},
-		tmp_data_obj: {},
-		controller: args.controller || {},
+	var Calculr_instance = {
+		data_obj: data_obj,
+		tmp_data_obj: tmp_data_obj,
+		controller: controller,
 		dependencies: {},
 		updaters: {},
 		assigners: {},
-		tmp_controls: args.tmp_controls || [],
-		finally_func: null,
+		tmp_controls: tmp_controls,
+		finally_func: finally_func,
 
 		/**
 		 * @param {object} controls_obj
@@ -93,6 +97,13 @@ function Calculr(args)
 			typeCheck(controls_obj, 'object');
 			// Iterate through each set of control options
 			$.each(controls_obj, function (control_name, control_options) {
+
+				if ( typeof control_options === 'string' )
+					control_options = { type: control_options };
+
+				if ( control_options.type === undefined )
+					control_options.type = 'number';
+
 				typeCheck(control_options, 'object');
 
 				var this_data_obj = control_options.is_tmp ? Calculr_instance.tmp_data_obj : Calculr_instance.data_obj;
@@ -103,11 +114,10 @@ function Calculr(args)
 					/* Set default if data property is undefined */
 					if ( control_options.default !== undefined )
 						this_data_obj[control_name] = control_options.default;
-					else if ( control_options.type !== undefined ) {
+					else {
 						typeCheck(control_options.type, 'string');
 						this_data_obj[control_name] = {'string':'','number':0}[control_options.type];
-					} else if ( control_options.set === undefined )
-						throw new Error('Control must have one of the following options defined: \'default\', \'type\' or \'set\'');
+					}
 				}
 
 				/* Define updaters and dependencies */
@@ -131,7 +141,7 @@ function Calculr(args)
 					typeCheck(control_options.set, 'function');
 
 				/**
-				 * @param {*} val
+				 * @param {string|number} val
 				 * @returns {boolean} - true if successful, false on failure
 				 */
 				Calculr_instance.assigners[control_name] = function(val) {
@@ -166,31 +176,27 @@ function Calculr(args)
 
 				// Define getter and setter for this control
 				Object.defineProperty(Calculr_instance.controller, control_name, {
+					enumerable: true,
+					/**
+					 * @returns {string|number}
+					 */
 					get: function() {
 						return this_data_obj[control_name];
 					},
+					/**
+					 * @param {string|number} val
+					 */
 					set: function(val) {
 						if ( Calculr_instance.assigners[control_name](val) ) {
 							updateAllDependencies(control_name);
 							// Apply this function after all updates are completed
 							if (Calculr_instance.finally_func) {
-								Calculr_instance.finally_func.call(this, Calculr_instance);
+								Calculr_instance.finally_func.call(Calculr_instance, Calculr_instance.controller);
 							}
 						}
-					},
-					enumerable: true
+					}
 				});
 			});
-			return this;
-		},
-
-		/**
-		 * @param {function} func
-		 * @returns {Calculr_instance}
-		 */
-		addFinally: function(func) {
-			typeCheck(func, 'function');
-			this.finally_func = func;
 			return this;
 		},
 
@@ -221,7 +227,8 @@ function Calculr(args)
 	 */
 	if ( args.static_data ) Calculr_instance.addStaticData(args.static_data);
 	if ( args.controls ) Calculr_instance.addControls(args.controls);
-	if ( args.finally_func ) Calculr_instance.addFinally(args.finally_func);
+
+	window.Calculr_instance = Calculr_instance;
 
 	return Calculr_instance;
 

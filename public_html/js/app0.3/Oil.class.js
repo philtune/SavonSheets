@@ -47,11 +47,8 @@ function Oil(uid)
 			}
 		},
 		controls: {
-			name: {
-				type: 'string'
-			},
+			name: 'string',
 			koh_sap: {
-				type: 'number',
 				set : function(val) {
 					return App.round(val, 4);
 				},
@@ -60,7 +57,6 @@ function Oil(uid)
 				}
 			},
 			naoh_sap: {
-				type: 'number',
 				set: function(val) {
 					return App.round(val, 4);
 				},
@@ -69,8 +65,8 @@ function Oil(uid)
 				}
 			}
 		},
-		finally_func: function() {
-			this.save();
+		finally_func: function(controller) {
+			controller.save();
 		}
 	}).init(function(controller) {
 		controller.list();
