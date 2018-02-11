@@ -5,14 +5,14 @@
  * @param {boolean} [check_defined] - Should val also be defined?
  */
 function typeCheck(val, type, check_defined) {
-	var defined = ( check_defined ) ? ( val !== undefined ) : true;
-	if ( !defined || typeof val !== type )
+	var is_defined = ( val === undefined );
+	if ( ( check_defined && is_defined ) || ( !check_defined && !is_defined && typeof val !== type ) )
 		throw new Error('Expecting '+type+', received '+(typeof val));
 }
 
 function _dataControls(label, new_arr)
 {
-	data_controls = jQuery.extend(getGlobalVar('data_'+label, {}), new_arr);
+	var data_controls = jQuery.extend(getGlobalVar('data_'+label, {}), new_arr);
 	
 	jQuery(document).ready(function($){
 
@@ -41,7 +41,7 @@ function _dataControls(label, new_arr)
 		});
 
 	});
-};
+}
 
 jQuery.fn.onTrigger = function(func)
 {

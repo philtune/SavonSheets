@@ -53,7 +53,7 @@ var UI = {
 
     list_oils : function()
     {
-        UI.list_data('oil', Oil, function(data){
+        UI.list_data('oil', Oil, function(data) {
             if ( !data.name.trim() ) data.name = 'Untitled';
             return data;
         });
