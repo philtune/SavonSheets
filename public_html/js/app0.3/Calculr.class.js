@@ -5,7 +5,6 @@
  */
 function Calculr(args)
 {
-	//todo: Get rid of typeChecks unless absolutely necessary. App will fail with enough detail without these checks.
 	typeCheck(args, 'object', true);
 
 	var data_obj = args.data_obj || {},

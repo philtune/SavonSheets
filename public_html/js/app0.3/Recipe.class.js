@@ -1,56 +1,23 @@
 function Recipe(uid)
 {
-	var data_obj = {},
-		tmp_data_obj = {};
+	var recipe_data = {},
+		recipe_tmp_data = {};
 	if ( uid !== undefined ) {
-		data_obj = Data.get_table_row('recipe', uid);
-		if ( !data_obj )
+		recipe_data = Data.get_table_row('recipe', uid);
+		if ( !recipe_data )
 			throw new Error('Recipe(\''+uid+'\') does not exist');
 	} else {
 		uid = create_uid(3, Data.get_table('recipe'));
 	}
 
 	var recipe_calc = Calculr({
-		data_obj: data_obj,
-		tmp_data_obj: tmp_data_obj,
+		data_obj: recipe_data,
+		tmp_data_obj: recipe_tmp_data,
 		static_data: {
 			uid: uid,
 			created_at: new Date(),
 			updated_at: new Date(),
 			deleted_at: null
-		},
-		controller: {
-			save: function() {
-				data_obj.updated_at = new Date();
-				Data.update_table_row('recipe', uid, data_obj);
-				this.list();
-				return this;
-			},
-			copy: function() {
-				uid = create_uid(3, Data.get_table('recipe'));
-				data_obj.uid = uid;
-				data_obj.name += ' (Copy)';
-				data_obj.created_at = new Date();
-				this.save();
-				return this;
-			},
-			delete: function() {
-				if ( Data.get_table_row('recipe', uid) && confirm('Are you sure you want to delete this recipe?') ) {
-					Data.delete_table_row('recipe', uid);
-				}
-				UI.list_oils();
-				UI.out_oil('');
-				return {};
-			},
-			list: function() {
-				UI.list_recipes();
-				UI.out_recipe(UI.toJSON(data_obj));
-				UI.out_recipe_tmp(UI.toJSON(tmp_data_obj));
-				return this;
-			},
-			oil: function(uid) {
-				return RecipeOil(uid, recipe_calc);
-			}
 		},
 		controls: {
 			name: 'string',
@@ -65,10 +32,10 @@ function Recipe(uid)
 			},
 			total_oils_weight: {
 				update: function(require) {
-					// return require('oils.weight') //todo: count all oils weight
+					return require('oils.weight') //todo: count all oils weight
 				}
 			},
-			// for App, underscore prefix indicates control cannot be set directly, only via update (if given)
+			// for App, underscore prefix indicates control cannot be assigned, only updated (if update() given)
 			_total_oils_percent: {
 				is_tmp: true,
 				set: false,
@@ -136,6 +103,39 @@ function Recipe(uid)
 			oils: {},
 			liquids: {},
 			additives: {}
+		},
+		controller: {
+			save: function() {
+				recipe_data.updated_at = new Date();
+				Data.update_table_row('recipe', uid, recipe_data);
+				this.list();
+				return this;
+			},
+			copy: function() {
+				uid = create_uid(3, Data.get_table('recipe'));
+				recipe_data.uid = uid;
+				recipe_data.name += ' (Copy)';
+				recipe_data.created_at = new Date();
+				this.save();
+				return this;
+			},
+			delete: function() {
+				if ( Data.get_table_row('recipe', uid) && confirm('Are you sure you want to delete this recipe?') ) {
+					Data.delete_table_row('recipe', uid);
+				}
+				UI.list_oils();
+				UI.out_oil('');
+				return {};
+			},
+			list: function() {
+				UI.list_recipes();
+				UI.out_recipe(UI.toJSON(recipe_data));
+				UI.out_recipe_tmp(UI.toJSON(recipe_tmp_data));
+				return this;
+			},
+			oil: function(uid) {
+				return RecipeOil(uid, recipe_calc);
+			}
 		},
 		finally_func: function (controller) {
 			controller.save();
