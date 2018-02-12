@@ -3,11 +3,11 @@ function Recipe(uid)
 	var data_obj = {},
 		tmp_data_obj = {};
 	if ( uid !== undefined ) {
-		data_obj = Data.get_table_row('oil', uid);
+		data_obj = Data.get_table_row('recipe', uid);
 		if ( !data_obj )
-			throw new Error('Oil(\''+uid+'\') does not exist');
+			throw new Error('Recipe(\''+uid+'\') does not exist');
 	} else {
-		uid = create_uid(3, Data.get_table('oil'));
+		uid = create_uid(3, Data.get_table('recipe'));
 	}
 
 	var recipe_calc = Calculr({
@@ -22,12 +22,12 @@ function Recipe(uid)
 		controller: {
 			save: function() {
 				data_obj.updated_at = new Date();
-				Data.update_table_row('oil', uid, data_obj);
+				Data.update_table_row('recipe', uid, data_obj);
 				this.list();
 				return this;
 			},
 			copy: function() {
-				uid = create_uid(3, Data.get_table('oil'));
+				uid = create_uid(3, Data.get_table('recipe'));
 				data_obj.uid = uid;
 				data_obj.name += ' (Copy)';
 				data_obj.created_at = new Date();
@@ -47,6 +47,9 @@ function Recipe(uid)
 				UI.out_recipe(UI.toJSON(data_obj));
 				UI.out_recipe_tmp(UI.toJSON(tmp_data_obj));
 				return this;
+			},
+			oil: function(uid) {
+				return RecipeOil(uid, recipe_calc);
 			}
 		},
 		controls: {
@@ -62,16 +65,15 @@ function Recipe(uid)
 			},
 			total_oils_weight: {
 				update: function(require) {
-					return require('oils.weight') //todo: count all oils weight
+					// return require('oils.weight') //todo: count all oils weight
 				}
 			},
 			// for App, underscore prefix indicates control cannot be set directly, only via update (if given)
 			_total_oils_percent: {
-				default: 1,
 				is_tmp: true,
 				set: false,
 				update: function(require) {
-					return require('oils.percent') // count all oils percent
+					return require('oils.percent') //todo: count all oils percent
 				}
 			},
 			_total_liquids_weight: {
@@ -129,6 +131,11 @@ function Recipe(uid)
 					])
 				}
 			}
+		},
+		lists: {
+			oils: {},
+			liquids: {},
+			additives: {}
 		},
 		finally_func: function (controller) {
 			controller.save();

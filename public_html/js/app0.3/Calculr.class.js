@@ -5,6 +5,7 @@
  */
 function Calculr(args)
 {
+	//todo: Get rid of typeChecks unless absolutely necessary. App will fail with enough detail without these checks.
 	typeCheck(args, 'object', true);
 
 	var data_obj = args.data_obj || {},
@@ -26,7 +27,7 @@ function Calculr(args)
 	 */
 	function controlsToBeUpdated(update_list, control_name) {
 		var child_dependencies = [];
-		$.each(Calculr_instance.dependencies[control_name], function(i, control_name) {
+		$.each(Calculr.dependencies[control_name], function(i, control_name) {
 			if ( update_list.indexOf(control_name) === -1 ) {
 				child_dependencies.push(control_name);
 				update_list.push(control_name);
@@ -40,16 +41,48 @@ function Calculr(args)
 		return update_list;
 	}
 
+	function getControlVal(key) {
+		// check for namespace
+		var namespaced = key.split('.');
+		if ( namespaced.length > 1 ) {
+			if ( namespaced[0] === 'this' ) {
+				//todo: find some way to recognize what control 'this' refers to
+			} else if ( Calculr.controller.hasOwnProperty(namespaced[0]) ) {
+				var result = 0;
+				$.each(Calculr.controller[namespaced[0]], function(list_key, list_data) {
+					if ( list_data.hasOwnProperty(namespaced[1]) )
+						result += list_data[namespaced[1]];
+				});
+				return result;
+			}
+		} else if ( Calculr.controller.hasOwnProperty(key) )
+			return Calculr.controller[key];
+		else
+			throw new Error('Key \''+key+'\' does not exist in controller.');
+
+	}
+
 	/**
 	 * @param {string} control_name
 	 */
 	function updateControl(control_name) {
-		if ( Calculr_instance.updaters.hasOwnProperty(control_name) ) {
-			var updater = Calculr_instance.updaters[control_name];
-			var result = updater.call(Calculr_instance.controller, function (key_str) {
-				return Calculr_instance.controller[key_str];
-			});
-			if ( result !== false ) Calculr_instance.assigners[control_name](result);
+		if ( Calculr.updaters.hasOwnProperty(control_name) ) {
+			var updater = Calculr.updaters[control_name];
+			if ( updater !== undefined ) {
+				var result = updater.call(Calculr.controller, function (key) {
+					var result = 0;
+					if ( Array.isArray(key) ) {
+						$.each(key, function(i, key) {
+							result += getControlVal(key);
+						});
+					} else {
+						result = getControlVal(key);
+					}
+					return result;
+				});
+				if ( result !== undefined && result !== false && !isNaN(result) )
+					Calculr.assigners[control_name](result);
+			}
 		}
 	}
 
@@ -67,7 +100,7 @@ function Calculr(args)
 		});
 	}
 
-	var Calculr_instance = {
+	var Calculr = {
 		data_obj: data_obj,
 		tmp_data_obj: tmp_data_obj,
 		controller: controller,
@@ -83,15 +116,15 @@ function Calculr(args)
 		addStaticData: function(controls_obj) {
 			typeCheck(controls_obj, 'object');
 			$.each(controls_obj, function(control_name, default_val){
-				if ( Calculr_instance.data_obj[control_name] === undefined )
-					Calculr_instance.data_obj[control_name] = default_val;
+				if ( Calculr.data_obj[control_name] === undefined )
+					Calculr.data_obj[control_name] = default_val;
 			});
 			return this;
 		},
 
 		/**
 		 * @param {object} controls_obj
-		 * @returns {Calculr_instance}
+		 * @returns {Calculr}
 		 */
 		addControls: function(controls_obj) {
 			typeCheck(controls_obj, 'object');
@@ -106,9 +139,9 @@ function Calculr(args)
 
 				typeCheck(control_options, 'object');
 
-				var this_data_obj = control_options.is_tmp ? Calculr_instance.tmp_data_obj : Calculr_instance.data_obj;
+				var this_data_obj = control_options.is_tmp ? Calculr.tmp_data_obj : Calculr.data_obj;
 
-				if ( control_options.is_tmp ) Calculr_instance.tmp_controls.push(control_name);
+				if ( control_options.is_tmp ) Calculr.tmp_controls.push(control_name);
 
 				if ( this_data_obj[control_name] === undefined || this_data_obj[control_name] === null ) {
 					/* Set default if data property is undefined */
@@ -123,17 +156,17 @@ function Calculr(args)
 				/* Define updaters and dependencies */
 				if ( control_options.update !== undefined && control_options.update !== false ) {
 
-					if ( Calculr_instance.updaters.hasOwnProperty(control_name) )
+					if ( Calculr.updaters.hasOwnProperty(control_name) )
 						throw new Error(control_name+' already has updater defined');
 					else {
 						typeCheck(control_options.update, 'function');
-						Calculr_instance.updaters[control_name] = control_options.update;
+						Calculr.updaters[control_name] = control_options.update;
 					}
 
-					control_options.update.call(Calculr_instance.controller, function(key_str){
-						if ( !Calculr_instance.dependencies.hasOwnProperty(key_str) )
-							Calculr_instance.dependencies[key_str] = [];
-						Calculr_instance.dependencies[key_str].push(control_name);
+					control_options.update.call(Calculr.controller, function(key_str){
+						if ( !Calculr.dependencies.hasOwnProperty(key_str) )
+							Calculr.dependencies[key_str] = [];
+						Calculr.dependencies[key_str].push(control_name);
 					});
 				}
 
@@ -144,20 +177,14 @@ function Calculr(args)
 				 * @param {string|number} val
 				 * @returns {boolean} - true if successful, false on failure
 				 */
-				Calculr_instance.assigners[control_name] = function(val) {
+				Calculr.assigners[control_name] = function(val) {
 					// If set property is defined...
-					if ( control_options.set !== undefined ) {
-						// and if control is allowed to be set
-						if ( control_options.set !== false ) {
-							var result = control_options.set(val);
-							// Exit if set() returns false
-							if ( result === false ) return false;
-							this_data_obj[control_name] = result;
-						} else {
-							alert(control_name+' cannot be set');
-							return false;
-						}
-					} else { // If set property is not defined...
+					if ( control_options.set !== undefined && typeof control_options.set === 'function' ) {
+						var result = control_options.set(val);
+						// Exit if set() returns false
+						if ( result === false ) return false;
+						this_data_obj[control_name] = result;
+					} else { // If set property is not defined or false...
 						// and if type property === number
 						if ( control_options.type ) {
 							if ( control_options.type === 'number' ) {
@@ -175,7 +202,7 @@ function Calculr(args)
 				};
 
 				// Define getter and setter for this control
-				Object.defineProperty(Calculr_instance.controller, control_name, {
+				Object.defineProperty(Calculr.controller, control_name, {
 					enumerable: true,
 					/**
 					 * @returns {string|number}
@@ -187,11 +214,14 @@ function Calculr(args)
 					 * @param {string|number} val
 					 */
 					set: function(val) {
-						if ( Calculr_instance.assigners[control_name](val) ) {
+						if ( control_options.set === false ) {
+							alert(control_name+' cannot be set');
+							return false;
+						} else if ( Calculr.assigners[control_name](val) ) {
 							updateAllDependencies(control_name);
 							// Apply this function after all updates are completed
-							if (Calculr_instance.finally_func) {
-								Calculr_instance.finally_func.call(Calculr_instance, Calculr_instance.controller);
+							if (Calculr.finally_func) {
+								Calculr.finally_func.call(Calculr, Calculr.controller);
 							}
 						}
 					}
@@ -200,16 +230,24 @@ function Calculr(args)
 			return this;
 		},
 
+		addList: function(list_name, list_options)
+		{
+			if ( !this.controller.hasOwnProperty(list_name) ) {
+				this.data_obj[list_name] = this.data_obj[list_name] || {};
+				this.controller[list_name] = {};
+			} else {
+				throw new Error(list_name+' already exists.');
+			}
+		},
+
 		/**
 		 * @param {function} func
 		 * @param {boolean=false} before_tmp_controls
-		 * @returns {Calculr_instance}
+		 * @returns {Calculr}
 		 */
 		init: function(func, before_tmp_controls) {
-			typeCheck(func, 'function');
-			typeCheck(before_tmp_controls, 'boolean');
 			function updateTmpControls() {
-				$.each(Calculr_instance.tmp_controls, function(i, control_name){
+				$.each(Calculr.tmp_controls, function(i, control_name){
 					updateControl(control_name);
 				});
 			}
@@ -223,13 +261,19 @@ function Calculr(args)
 
 	/**
 	 * Optionally, if properties are set in the passed args object,
-	 * pass their values to the Calculr_instance methods
+	 * pass their values to the Calculr methods
 	 */
-	if ( args.static_data ) Calculr_instance.addStaticData(args.static_data);
-	if ( args.controls ) Calculr_instance.addControls(args.controls);
+	if ( args.static_data ) Calculr.addStaticData(args.static_data);
+	if ( args.controls ) Calculr.addControls(args.controls);
+	if ( args.lists ) {
+		typeCheck(args.lists, 'object');
+		$.each(args.lists, function(list_name, list_options) {
+			Calculr.addList(list_name, list_options);
+		});
+	}
 
-	window.Calculr_instance = Calculr_instance;
+	window.Calculr_instance = Calculr;
 
-	return Calculr_instance;
+	return Calculr;
 
 }

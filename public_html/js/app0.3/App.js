@@ -130,5 +130,5 @@ var App = {
 	}
 };
 
-// UI.list_recipes();
+UI.list_recipes();
 UI.list_oils();
