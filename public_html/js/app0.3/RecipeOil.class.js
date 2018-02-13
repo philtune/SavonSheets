@@ -1,9 +1,10 @@
-function RecipeOil(uid, recipe_calc)
+function RecipeOil(uid)
 {
-	typeCheck(recipe_calc, 'object', true);
+	var recipe_calc = this;
+
 	if ( uid !== undefined ) {
 		if ( !recipe_calc.data_obj.oils.hasOwnProperty(uid) || typeof recipe_calc.data_obj.oils[uid] !== 'object' )
-			throw new Error('Missing or invalid data for recipe_data.oils[\''+uid+'\']');
+			throw new Error('Missing or invalid data for recipe.oils[\''+uid+'\']');
 	} else {
 		uid = create_uid(3, Data.get_table('recipe'));
 		recipe_calc.data_obj.oils[uid] = {};
@@ -11,7 +12,7 @@ function RecipeOil(uid, recipe_calc)
 	var recipe_oil_data = recipe_calc.data_obj.oils[uid],
 		recipe_oil_tmp_data = recipe_calc.tmp_data_obj.oils[uid] = {};
 
-	var recipe_oil_calc = Calculr({
+	var recipe_oil_calc = recipe_calc.ItemCalculr('oils', uid, {
 		data_obj: recipe_oil_data,
 		tmp_data_obj: recipe_oil_tmp_data,
 		controls: {
@@ -46,21 +47,23 @@ function RecipeOil(uid, recipe_calc)
 					return isFinite(result) ? App.round(result, 4) : 0
 				}
 			},
+			weight: {
+				is_tmp: true,
+				update: function(require) { return require('total_oils_weight') * require('this.percent') }
+			},
 			// for App, underscore prefix indicates control cannot be assigned, only updated (if update() given)
-			_name: {
-				type: 'string',
+			_name: { type: 'string',  is_tmp: true,  set: false },
+			_naoh_sap: { is_tmp: true,  set: false },
+			_koh_sap: { is_tmp: true,  set: false },
+			_naoh_weight: {
 				is_tmp: true,
 				set: false,
-				update: function(require) {
-					//todo: maybe don't set oil_id as requirement, just have oil_id update these when assigned
-					var oil_id = require('this.oil_id');
-					if ( !oil_id ) { // when dependencies are being recorded
-						//todo: front-load all Oil()s on init so this doesn't have to be called more than once
-						var oil_instance = Oil(oil_id);
-						if ( $.isEmptyObject(oil_instance) || !oil_instance.hasOwnProperty('name') ) return '';
-						else return oil_instance.name;
-					} else return '';
-				}
+				update: function(require) { return require('this.weight') * require('this._naoh_sap') }
+			},
+			_koh_weight: {
+				is_tmp: true,
+				set: false,
+				update: function(require) { return require('this.weight') * require('this._koh_sap') }
 			}
 		},
 		controller: {
@@ -70,12 +73,11 @@ function RecipeOil(uid, recipe_calc)
 				recipe_calc.data_obj.oils = App.fixObjOrder(recipe_calc.data_obj.oils);
 				recipe_calc.controller.save();
 				//todo: find any references to this object instance to delete or =null for garbage collection
-			},
-			updateThisById: function() {
-				return this;
 			}
-		},
-		finally_func: function(controller) {}
-	}).init(function(){});
+		}
+	}).init(function(controller){
+		controller.list();
+	});
+console.log(recipe_oil_calc);
 	return recipe_oil_calc.controller;
 }

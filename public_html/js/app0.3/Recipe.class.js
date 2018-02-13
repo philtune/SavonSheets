@@ -99,11 +99,6 @@ function Recipe(uid)
 				}
 			}
 		},
-		lists: {
-			oils: {},
-			liquids: {},
-			additives: {}
-		},
 		controller: {
 			save: function() {
 				recipe_data.updated_at = new Date();
@@ -132,9 +127,21 @@ function Recipe(uid)
 				UI.out_recipe(UI.toJSON(recipe_data));
 				UI.out_recipe_tmp(UI.toJSON(recipe_tmp_data));
 				return this;
-			},
-			oil: function(uid) {
-				return RecipeOil(uid, recipe_calc);
+			// },
+			// oil: function(uid) {
+			// 	return RecipeOil(uid, recipe_calc);
+			}
+		},
+		lists: {
+			oils: {
+				control: 'oil',
+				class: RecipeOil
+			// },
+			// liquids: {
+			// 	liquid: RecipeLiquid
+			// },
+			// additives: {
+			// 	additive: RecipeAdditive
 			}
 		},
 		finally_func: function (controller) {
@@ -143,6 +150,8 @@ function Recipe(uid)
 	}).init(function(controller){
 		controller.list();
 	});
+
+	window.recipe = recipe_calc.controller;
 
 	return recipe_calc.controller;
 }
