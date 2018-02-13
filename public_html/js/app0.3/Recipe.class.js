@@ -10,7 +10,7 @@ function Recipe(uid)
 		uid = create_uid(3, Data.get_table('recipe'));
 	}
 
-	var recipe_calc = Calculr({
+	var recipe_calc = new Calculr({
 		data_obj: recipe_data,
 		tmp_data_obj: recipe_tmp_data,
 		static_data: {
@@ -151,7 +151,7 @@ function Recipe(uid)
 		controller.list();
 	});
 
-	window.recipe = recipe_calc.controller;
+	window.recipe = recipe_calc;
 
 	return recipe_calc.controller;
 }

@@ -34,7 +34,7 @@ var UI = {
                var $listing = $(UI.renderTemplate(table_info[1], row_obj));
                $listing.find('button')
                    .onTrigger(function(){
-                       window[table] = data_class(uid);
+                       data_class(uid);
                    });
                $container.append($listing);
            });

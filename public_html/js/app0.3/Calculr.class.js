@@ -1,6 +1,6 @@
 /**
  * @param {object} args
- * @returns {{data_obj: {}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, finally_func: null, addStaticData: addStaticData, addControls: addControls, init: init}}
+ * @returns {{data_obj: *|{}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, lists: Array, finally_func: null, addStaticData: addStaticData, addControl: addControl, addList: addList, init: init}}
  * @constructor
  */
 function Calculr(args)
@@ -20,11 +20,13 @@ function Calculr(args)
 	}
 
 	/**
+	 * Build an update_list of all controls that need to be updated when a depended control is set
 	 * @param {array} update_list - running list of controls to be updated
 	 * @param {string} control_name - current control
-	 * @returns {array}
+	 * @returns {string[]}
 	 */
-	function controlsToBeUpdated(update_list, control_name) {
+	function controlsToBeUpdated(update_list, control_name)
+	{
 		var child_dependencies = [];
 		$.each(Calculr.dependencies[control_name], function(i, control_name) {
 			if ( update_list.indexOf(control_name) === -1 ) {
@@ -40,12 +42,17 @@ function Calculr(args)
 		return update_list;
 	}
 
-	function getControlVal(key) {
+	/**
+	 * @param {string} key - ex. 'control_name', 'parent.control_name'
+	 * @returns {*} - the getter value of the control
+	 */
+	function getControlVal(key)
+	{
 		// check for namespace
 		var namespaced = key.split('.');
 		if ( namespaced.length > 1 ) {
-			if ( namespaced[0] === 'this' ) {
-				//todo: find some way to recognize what control 'this' refers to
+			if ( namespaced[0] === 'parent' ) {
+				//todo: find some way to recognize what control 'parent' refers to
 			} else if ( Calculr.controller.hasOwnProperty(namespaced[0]) ) {
 				var result = 0;
 				$.each(Calculr.controller[namespaced[0]], function(list_key, list_data) {
@@ -56,19 +63,27 @@ function Calculr(args)
 			}
 		} else if ( Calculr.controller.hasOwnProperty(key) )
 			return Calculr.controller[key];
-		else
-			throw new Error('Key \''+key+'\' does not exist in controller.');
-
+		else {
+			console.log(Calculr);
+			throw new Error('Key \'' + key + '\' does not exist in controller.');
+		}
 	}
 
 	/**
+	 * Update a control value directly using its assigner instead of its setter (to avoid dependency updates)
 	 * @param {string} control_name
 	 */
-	function updateControl(control_name) {
+	function updateControl(control_name)
+	{
 		if ( Calculr.updaters.hasOwnProperty(control_name) ) {
 			var updater = Calculr.updaters[control_name];
 			if ( updater !== undefined ) {
-				var result = updater.call(Calculr.controller, function (key) {
+				/**
+				 * @param {array|string} key - ex. 'control_name', 'parent.control_name', ['control_name', 'control2_name']
+				 * @returns {number}
+				 */
+				function cb(key)
+				{
 					var result = 0;
 					if ( Array.isArray(key) ) {
 						$.each(key, function(i, key) {
@@ -78,7 +93,8 @@ function Calculr(args)
 						result = getControlVal(key);
 					}
 					return result;
-				});
+				}
+				var result = updater.call(Calculr.controller, cb);
 				if ( result !== undefined && result !== false && !isNaN(result) )
 					Calculr.assigners[control_name](result);
 			}
@@ -86,6 +102,7 @@ function Calculr(args)
 	}
 
 	/**
+	 * When control is set, update all controls that depend on this control
 	 * @param {string} control_name
 	 */
 	function updateAllDependencies(control_name) {
@@ -107,10 +124,12 @@ function Calculr(args)
 		updaters: {},
 		assigners: {},
 		tmp_controls: tmp_controls,
+		lists: {},
 		finally_func: finally_func,
 
 		/**
 		 * @param {object} controls_obj
+		 * @returns {Calculr}
 		 */
 		addStaticData: function(controls_obj)
 		{
@@ -215,7 +234,7 @@ function Calculr(args)
 					if ( control_options.set === false ) {
 						alert(control_name+' cannot be set');
 						return false;
-					} else if ( Calculr.assigners[control_name](val) ) {
+					} else if ( Calculr.assigners[control_name].call(Calculr, val) ) {
 						updateAllDependencies(control_name);
 						// Apply this function after all updates are completed
 						if (Calculr.finally_func) {
@@ -227,133 +246,54 @@ function Calculr(args)
 			return this;
 		},
 
+		/**
+		 * @example
+		 * Calculr.addList('oils', {control: 'oil', class: RecipeOil});
+		 * @param {string} list_name
+		 * @param {object} list_options
+		 */
 		addList: function(list_name, list_options)
 		{
-			if ( !this.controller.hasOwnProperty(list_name) ) {
-				this.data_obj[list_name] = this.data_obj[list_name] || {};
-				this.tmp_data_obj[list_name] = {};
-				this.controller[list_name] = {};
-			} else
+			if ( this.controller.hasOwnProperty(list_name) )
 				throw new Error(list_name+' already exists.');
 
 			if ( list_options.control !== undefined && list_options.class !== undefined ) {
-				this.controller[list_options.control] = function () {
-					return list_options.class.apply(Calculr, arguments)
-				}
+				Calculr.data_obj[list_name] = Calculr.data_obj[list_name] || {};
+				Calculr.tmp_data_obj[list_name] = {};
+				Calculr.controller[list_name] = {};
+				Calculr.controller[list_options.control] = function(index) {
+					var listCalculr = list_options.class.call(Calculr, index);
+					Calculr.controller[list_name][index] = listCalculr;
+					return listCalculr;
+				};
+				Calculr.lists[list_name] = list_options.control;
 				//todo: use list_options to front-load existing data?
 			}
 		},
 
 		/**
-		 * @param {string} list_name
-		 * @param {string} list_item_key
-		 * @param {object} list_item_options
-		 * @returns {{data_obj, tmp_data_obj, controller: {}, tmp_controls: Array, addControl: addControl, init: init}}
-		 * @constructor
-		 */
-		ItemCalculr: function(list_name, list_item_key, list_item_options)
-		{
-			//fixme: maybe get rid of this altogether and just use Calculr for list items
-			typeCheck(list_item_options, 'object', true);
-
-			var data_obj = list_item_options.data_obj || {},
-				tmp_data_obj = list_item_options.tmp_data_obj || {},
-				controller = list_item_options.controller || {},
-				tmp_controls = list_item_options.tmp_controls || [];
-
-			console.log(list_name, list_item_key, list_item_options);
-			var ItemCalculr = {
-				data_obj: data_obj[list_name][list_item_key],
-				tmp_data_obj: tmp_data_obj[list_name][list_item_key],
-				controller: controller,
-				tmp_controls: tmp_controls,
-				/**
-				 * @param {string} control_name
-				 * @param {object} control_options
-				 * @returns {ItemCalculr}
-				 */
-				addControl: function(control_name, control_options)
-				{
-					if ( typeof control_options === 'string' )
-						control_options = { type: control_options };
-
-					typeCheck(control_options, 'object');
-
-					if ( control_options.type === undefined )
-						control_options.type = 'number';
-
-					//todo: Diff: using ItemCalculr v. Calculr
-					var this_data_obj = control_options.is_tmp ? ItemCalculr.tmp_data_obj : ItemCalculr.data_obj;
-
-					//todo: Diff: using ItemCalculr v. Calculr
-					if ( control_options.is_tmp ) ItemCalculr.tmp_controls.push(control_name);
-
-					if ( this_data_obj[control_name] === undefined || this_data_obj[control_name] === null ) {
-						/* Set default if data property is undefined */
-						if ( control_options.default !== undefined )
-							this_data_obj[control_name] = control_options.default;
-						else {
-							typeCheck(control_options.type, 'string');
-							this_data_obj[control_name] = {'string':'','number':0}[control_options.type];
-						}
-					}
-
-					/* Define updaters and dependencies */
-					if ( control_options.update !== undefined && control_options.update !== false ) {
-
-						if ( Calculr.updaters.hasOwnProperty(control_name) )
-							throw new Error(control_name+' already has updater defined');
-						else {
-							typeCheck(control_options.update, 'function');
-							Calculr.updaters[control_name] = control_options.update;
-						}
-
-						control_options.update.call(Calculr.controller, function(key_str){
-							if ( !Calculr.dependencies.hasOwnProperty(key_str) )
-								Calculr.dependencies[key_str] = [];
-							Calculr.dependencies[key_str].push(control_name);
-						});
-					}
-
-					return this;
-				},
-				/**
-				 * @param {function} func
-				 * @param {boolean} [before_tmp_controls]
-				 * @returns {ItemCalculr}
-				 */
-				init: function(func, before_tmp_controls)
-				{
-					//todo
-					return this;
-				}
-			};
-
-			if ( list_item_options.controls ) {
-				typeCheck(list_item_options.controls, 'object');
-				// Iterate through each set of control options
-				$.each(list_item_options.controls, function (control_name, control_options) {
-					ItemCalculr.addControl(control_name, control_options);
-				});
-			}
-			return ItemCalculr;
-		},
-
-		/**
 		 * @param {function} func
-		 * @param {boolean=false} before_tmp_controls
+		 * @param {boolean} [before_tmp_controls=false]
 		 * @returns {Calculr}
 		 */
 		init: function(func, before_tmp_controls)
 		{
-			function updateTmpControls() {
+			function init() {
+				// Initialize lists by loading each
+				$.each(Calculr.lists, function(list_name, list_item_name) {
+					$.each(Calculr.data_obj[list_name], function(index) {
+						console.log(index, list_item_name);
+						Calculr.controller[list_item_name](index);
+					});
+				});
+				// Update tmp_controls
 				$.each(Calculr.tmp_controls, function(i, control_name){
 					updateControl(control_name);
 				});
 			}
-			if ( !before_tmp_controls ) updateTmpControls();
+			if ( !before_tmp_controls ) init();
 			func.apply(this, [this.controller]);
-			if ( before_tmp_controls ) updateTmpControls();
+			if ( before_tmp_controls ) init();
 			return this;
 		}
 
