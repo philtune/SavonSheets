@@ -1,6 +1,6 @@
 /**
  * @param {object} args
- * @returns {{data_obj: *|{}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, lists: Array, finally_func: null, addStaticData: addStaticData, addControl: addControl, addList: addList, init: init}}
+ * @returns {{data_obj: *|{}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, lists: {}, finally_func: null, addStaticData: addStaticData, addControl: addControl, addList: addList, init: init}}
  * @constructor
  */
 function Calculr(args)
@@ -10,7 +10,6 @@ function Calculr(args)
 	var data_obj = args.data_obj || {},
 		tmp_data_obj = args.tmp_data_obj || {},
 		controller = args.controller || {},
-		tmp_controls = args.tmp_controls || [],
 		finally_func = args.finally_func || null;
 
 	if ( typeof data_obj === 'function' ) {
@@ -20,7 +19,7 @@ function Calculr(args)
 	}
 
 	/**
-	 * Build an update_list of all controls that need to be updated when a depended control is set
+	 * Build an update_list of all controls that need to be updated when a depended control is itself updated.
 	 * @param {array} update_list - running list of controls to be updated
 	 * @param {string} control_name - current control
 	 * @returns {string[]}
@@ -63,10 +62,8 @@ function Calculr(args)
 			}
 		} else if ( Calculr.controller.hasOwnProperty(key) )
 			return Calculr.controller[key];
-		else {
-			console.log(Calculr);
+		else
 			throw new Error('Key \'' + key + '\' does not exist in controller.');
-		}
 	}
 
 	/**
@@ -102,10 +99,10 @@ function Calculr(args)
 	}
 
 	/**
-	 * When control is set, update all controls that depend on this control
+	 * When control is updated, update all controls that depend on this control
 	 * @param {string} control_name
 	 */
-	function updateAllDependencies(control_name) {
+	function updateAllDependentControls(control_name) {
 		// Get dependencies arr
 		var update_list = controlsToBeUpdated([control_name], control_name);
 		// remove control_name before running updaters
@@ -116,28 +113,162 @@ function Calculr(args)
 		});
 	}
 
+	/**
+	 *
+	 * @param {string} control_name
+	 * @param {object} control_options
+	 * @param {object} this_data_obj
+	 * @returns {*}
+	 */
+	function defineControl(control_name, control_options, this_data_obj)
+	{
+		// Assign default value to this_data_obj
+		if ( this_data_obj[control_name] === undefined || this_data_obj[control_name] === null ) {
+			/* Assign default if data property is undefined */
+			if ( control_options.default !== undefined )
+				this_data_obj[control_name] = control_options.default;
+			else {
+				if ( control_options.type === undefined )
+					control_options.type = 'number';
+				this_data_obj[control_name] = {'string':'','number':0}[control_options.type];
+			}
+		}
+
+		/**
+		 * Assigner performs all the validation, should only be called within Calculr instance
+		 * @param {string|number} val
+		 * @returns {boolean} - true if successful, false on failure
+		 */
+		Calculr.assigners[control_name] = function(val) {
+			// If validate property is defined...
+			if ( control_options.validate !== undefined ) {
+				typeCheck(control_options.validate, 'function');
+				var result = control_options.validate(val);
+				// Exit if validate() returns false
+				if ( result === false ) return false;
+				this_data_obj[control_name] = result;
+			} else { // If validate property is not defined or false...
+				// and if type property === number
+				if ( control_options.type ) {
+					if ( control_options.type === 'number' ) {
+						// convert to number and check for NaN
+						val = val / 1;
+						if (isNaN(val)) throw new Error('Value must be a number');
+					} else if ( control_options.type === 'string' && typeof val === 'number' )
+						val = val + '';
+					else typeCheck(val, control_options.type);
+				}
+				// If we've made it this far, assign the value to our data
+				this_data_obj[control_name] = val;
+			}
+			return true;
+		};
+
+		return control_options;
+	}
+
+	function addToUpdatersAndDependencies(control_name, control_options)
+	{
+		/* Define updaters and dependencies */
+		if ( control_options.update ) {
+
+			if ( Calculr.updaters.hasOwnProperty(control_name) )
+				throw new Error(control_name+' already has updater defined');
+			else {
+				typeCheck(control_options.update, 'function');
+				Calculr.updaters[control_name] = control_options.update;
+			}
+
+			control_options.update.call(Calculr.controller, function(key_str){
+				if ( !Calculr.dependencies.hasOwnProperty(key_str) )
+					Calculr.dependencies[key_str] = [];
+				Calculr.dependencies[key_str].push(control_name);
+			});
+		}
+	}
+
+	/**
+	 *
+	 * @param {string} foreign_key
+	 * @param {object} foreign_controller
+	 * @param {object} controls
+	 */
+	function updateByForeignKey(foreign_key, foreign_controller, controls) {
+		if ( foreign_controller ) {
+			updateAllDependentControls(foreign_key);
+			$.each(controls, function(control_name) {
+				Calculr.assigners[control_name](foreign_controller[control_name]);
+				updateAllDependentControls(control_name);
+			});
+		}
+	}
+
+	var init_controls = [],
+		foreign_controls = {};
+
 	var Calculr = {
+		//todo go-live: which of these properties can probably be private?
 		data_obj: data_obj,
 		tmp_data_obj: tmp_data_obj,
 		controller: controller,
 		dependencies: {},
 		updaters: {},
 		assigners: {},
-		tmp_controls: tmp_controls,
 		lists: {},
 		finally_func: finally_func,
 
 		/**
-		 * @param {object} controls_obj
+		 * @param {string} foreign_key
+		 * @param {object} options
 		 * @returns {Calculr}
 		 */
-		addStaticData: function(controls_obj)
+		addForeignData: function(foreign_key, options)
 		{
-			typeCheck(controls_obj, 'object');
-			$.each(controls_obj, function(control_name, default_val){
-				if ( Calculr.data_obj[control_name] === undefined )
-					Calculr.data_obj[control_name] = default_val;
+			var this_data_obj = options.is_tmp ? Calculr.tmp_data_obj : Calculr.data_obj;
+
+			defineControl(foreign_key, options, this_data_obj);
+
+			Object.defineProperty(Calculr.controller, foreign_key, {
+				enumerable: true,
+				/**
+				 * @returns {string|number}
+				 */
+				get: function() {
+					return this_data_obj[foreign_key];
+				},
+				/**
+				 * @param {string|number} val
+				 */
+				set: function(val) {
+					if ( Calculr.assigners[foreign_key](val) ) {
+						updateByForeignKey(foreign_key, options.class(val), options.controls);
+						// Apply this function after all updates are completed
+						if ( Calculr.finally_func ) {
+							Calculr.finally_func.call(Calculr, Calculr.controller);
+						}
+					}
+				}
 			});
+
+			foreign_controls[foreign_key] = options;
+
+			$.each(options.controls, function(control_name, control_options) {
+				var this_data_obj = control_options.is_tmp ? Calculr.tmp_data_obj : Calculr.data_obj;
+
+				defineControl(control_name, control_options, this_data_obj);
+
+				Object.defineProperty(Calculr.controller, control_name, {
+					enumerable: true,
+					get: function() {
+						return this_data_obj[control_name];
+					},
+					set: function() {
+						alert(control_name+' is not assignable.');
+						return false;
+					}
+				})
+			});
+
 			return this;
 		},
 
@@ -151,72 +282,12 @@ function Calculr(args)
 			if ( typeof control_options === 'string' )
 				control_options = { type: control_options };
 
-			typeCheck(control_options, 'object');
-
-			if ( control_options.type === undefined )
-				control_options.type = 'number';
-
 			var this_data_obj = control_options.is_tmp ? Calculr.tmp_data_obj : Calculr.data_obj;
 
-			if ( control_options.is_tmp ) Calculr.tmp_controls.push(control_name);
+			// Add to init_controls
+			if ( control_options.is_tmp ) init_controls.push(control_name);
 
-			if ( this_data_obj[control_name] === undefined || this_data_obj[control_name] === null ) {
-				/* Set default if data property is undefined */
-				if ( control_options.default !== undefined )
-					this_data_obj[control_name] = control_options.default;
-				else {
-					typeCheck(control_options.type, 'string');
-					this_data_obj[control_name] = {'string':'','number':0}[control_options.type];
-				}
-			}
-
-			/* Define updaters and dependencies */
-			if ( control_options.update !== undefined && control_options.update !== false ) {
-
-				if ( Calculr.updaters.hasOwnProperty(control_name) )
-					throw new Error(control_name+' already has updater defined');
-				else {
-					typeCheck(control_options.update, 'function');
-					Calculr.updaters[control_name] = control_options.update;
-				}
-
-				control_options.update.call(Calculr.controller, function(key_str){
-					if ( !Calculr.dependencies.hasOwnProperty(key_str) )
-						Calculr.dependencies[key_str] = [];
-					Calculr.dependencies[key_str].push(control_name);
-				});
-			}
-
-			if ( control_options.set !== undefined && control_options.set !== false )
-				typeCheck(control_options.set, 'function');
-
-			/**
-			 * @param {string|number} val
-			 * @returns {boolean} - true if successful, false on failure
-			 */
-			Calculr.assigners[control_name] = function(val) {
-				// If set property is defined...
-				if ( control_options.set !== undefined && typeof control_options.set === 'function' ) {
-					var result = control_options.set(val);
-					// Exit if set() returns false
-					if ( result === false ) return false;
-					this_data_obj[control_name] = result;
-				} else { // If set property is not defined or false...
-					// and if type property === number
-					if ( control_options.type ) {
-						if ( control_options.type === 'number' ) {
-							// convert to number and check for NaN
-							val = val / 1;
-							if (isNaN(val)) throw new Error('Value must be a number');
-						} else if ( control_options.type === 'string' && typeof val === 'number' )
-							val = val + '';
-						else typeCheck(val, control_options.type);
-					}
-					// If we've made it this far, assign the value to our data
-					this_data_obj[control_name] = val;
-				}
-				return true;
-			};
+			defineControl(control_name, control_options, this_data_obj);
 
 			// Define getter and setter for this control
 			Object.defineProperty(Calculr.controller, control_name, {
@@ -231,18 +302,43 @@ function Calculr(args)
 				 * @param {string|number} val
 				 */
 				set: function(val) {
-					if ( control_options.set === false ) {
-						alert(control_name+' cannot be set');
+					if ( control_options.assignable === false ) {
+						alert(control_name+' is not assignable.');
 						return false;
-					} else if ( Calculr.assigners[control_name].call(Calculr, val) ) {
-						updateAllDependencies(control_name);
-						// Apply this function after all updates are completed
-						if (Calculr.finally_func) {
-							Calculr.finally_func.call(Calculr, Calculr.controller);
+					} else {
+						if ( Calculr.assigners[control_name](val) ) {
+							updateAllDependentControls(control_name);
+							// Apply this function after all updates are completed
+							if (Calculr.finally_func) {
+								Calculr.finally_func.call(Calculr, Calculr.controller);
+							}
 						}
 					}
 				}
 			});
+
+			addToUpdatersAndDependencies(control_name, control_options);
+
+			return this;
+		},
+
+		/**
+		 * Static data is recorded privately but is not added to the controller, so no setter, getter or update().
+		 * @param {string} control_name
+		 * @param {*} input
+		 * @returns {Calculr}
+		 */
+		addStaticData: function(control_name, input)
+		{
+			var default_val = input,
+				this_data_obj = Calculr.data_obj;
+			if ( typeof input === 'object' && input !== null && !Array.isArray(input) ) {
+				if ( input.is_tmp ) this_data_obj = Calculr.tmp_data_obj;
+				default_val = input.default;
+			}
+			if ( this_data_obj[control_name] === undefined )
+				this_data_obj[control_name] = default_val;
+
 			return this;
 		},
 
@@ -267,46 +363,53 @@ function Calculr(args)
 					return listCalculr;
 				};
 				Calculr.lists[list_name] = list_options.control;
-				//todo: use list_options to front-load existing data?
 			}
 		},
 
 		/**
 		 * @param {function} func
-		 * @param {boolean} [before_tmp_controls=false]
+		 * @param {boolean} [before_init_controls=false]
 		 * @returns {Calculr}
 		 */
-		init: function(func, before_tmp_controls)
+		init: function(func, before_init_controls)
 		{
 			function init() {
 				// Initialize lists by loading each
 				$.each(Calculr.lists, function(list_name, list_item_name) {
 					$.each(Calculr.data_obj[list_name], function(index) {
-						console.log(index, list_item_name);
 						Calculr.controller[list_item_name](index);
 					});
 				});
-				// Update tmp_controls
-				$.each(Calculr.tmp_controls, function(i, control_name){
+				// Update init_controls
+				$.each(init_controls, function(i, control_name){
 					updateControl(control_name);
 				});
+				// Initiate foreign_controls
+				$.each(foreign_controls, function(foreign_key, options){
+					updateByForeignKey(foreign_key, options.class(Calculr.controller[foreign_key]), options.controls);
+				});
 			}
-			if ( !before_tmp_controls ) init();
+			if ( !before_init_controls ) init();
 			func.apply(this, [this.controller]);
-			if ( before_tmp_controls ) init();
+			if ( before_init_controls ) init();
 			return this;
 		}
 
 	};
 
 	/**
-	 * Optionally, if properties are set in the passed args object,
+	 * Optionally, if properties are defined in the passed args object,
 	 * pass their values to the Calculr methods
 	 */
-	if ( args.static_data ) Calculr.addStaticData(args.static_data);
+	if ( args.static_data ) {
+		typeCheck(args.static_data, 'object');
+		$.each(args.static_data, function(control_name, input){
+			Calculr.addStaticData(control_name, input);
+		});
+	}
 	if ( args.controls ) {
 		typeCheck(args.controls, 'object');
-		// Iterate through each set of control options
+		// Iterate through each group of control options
 		$.each(args.controls, function (control_name, control_options) {
 			Calculr.addControl(control_name, control_options);
 		});
@@ -315,6 +418,12 @@ function Calculr(args)
 		typeCheck(args.lists, 'object');
 		$.each(args.lists, function(list_name, list_options) {
 			Calculr.addList(list_name, list_options);
+		});
+	}
+	if ( args.foreign_data ) {
+		typeCheck(args.foreign_data, 'object');
+		$.each(args.foreign_data, function(foreign_key, options){
+			Calculr.addForeignData(foreign_key, options);
 		});
 	}
 

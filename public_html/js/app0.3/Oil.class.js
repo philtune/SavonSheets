@@ -12,7 +12,7 @@ function Oil(uid)
 	var oil_calc = new Calculr({
 		data_obj: data_obj,
 		static_data: {
-			uid: uid,
+//			uid: uid,
 			created_at: new Date(),
 			updated_at: new Date(),
 			deleted_at: null

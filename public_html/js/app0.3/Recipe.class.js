@@ -13,97 +13,11 @@ function Recipe(uid)
 	var recipe_calc = new Calculr({
 		data_obj: recipe_data,
 		tmp_data_obj: recipe_tmp_data,
-		static_data: {
-			uid: uid,
-			created_at: new Date(),
-			updated_at: new Date(),
-			deleted_at: null
-		},
-		controls: {
-			name: 'string',
-			note: 'string',
-			percent_naoh: { default: 1 },
-			lye_discount: {},
-			liquid_lye_ratio: { default: 1 },
-			lye_type: {
-				set: function(val) {
-					return (val < 0 || val > 2) ? 0 : val
-				}
-			},
-			total_oils_weight: {
-				update: function(require) {
-					return require('oils.weight') //todo: count all oils weight
-				}
-			},
-			// for App, underscore prefix indicates control cannot be assigned, only updated (if update() given)
-			_total_oils_percent: {
-				is_tmp: true,
-				set: false,
-				update: function(require) {
-					return require('oils.percent') //todo: count all oils percent
-				}
-			},
-			_total_liquids_weight: {
-				is_tmp: true,
-				set: false, //todo: maybe change to allow this control to update liquid_lye_ratio
-				update: function(require) {
-					return require([ //todo: arrays expect all to be added together
-						'_total_naoh_weight',
-						'_total_koh_weight'
-					]) * require('liquid_lye_ratio')
-				}
-			},
-			_total_additives_weight: {
-				is_tmp: true,
-				set: false,
-				update: function(require) {
-					return require('additives.weight') // count all additives weight
-				}
-			},
-			_total_naoh_weight: {
-				is_tmp: true,
-				set: false,
-				update: function(require) {
-					return [1, 0, require('percent_naoh')][require('lye_type')]
-						* require('oils._naoh_weight')
-						* ( 1 - require('lye_discount') )
-				}
-			},
-			_total_koh_weight: {
-				is_tmp: true,
-				set: false,
-				update: function(require) {
-					return [1, 0, require('percent_naoh')][require('lye_type')]
-						* require('oils._naoh_weight')
-						* ( 1 - require('lye_discount') )
-				}
-			},
-			_total_liquids_parts: {
-				is_tmp: true,
-				set: false,
-				update: function(require) {
-					return require('liquids.parts');
-				}
-			},
-			_total_recipe_weight: {
-				is_tmp: true,
-				set: false,
-				update: function(require) {
-					return require([ //todo: can this be calculated without temporary control values?
-						'total_oils_weight',
-						'_total_naoh_weight',
-						'_total_koh_weight',
-						'_total_liquids_weight',
-						'_total_additives_weight'
-					])
-				}
-			}
-		},
 		controller: {
 			save: function() {
 				recipe_data.updated_at = new Date();
 				Data.update_table_row('recipe', uid, recipe_data);
-				this.list();
+				this.print();
 				return this;
 			},
 			copy: function() {
@@ -122,14 +36,100 @@ function Recipe(uid)
 				UI.out_oil('');
 				return {};
 			},
-			list: function() {
+			print: function() {
 				UI.list_recipes();
 				UI.out_recipe(UI.toJSON(recipe_data));
 				UI.out_recipe_tmp(UI.toJSON(recipe_tmp_data));
 				return this;
-			// },
-			// oil: function(uid) {
-			// 	return RecipeOil(uid, recipe_calc);
+				// },
+				// oil: function(uid) {
+				// 	return RecipeOil(uid, recipe_calc);
+			}
+		},
+		static_data: {
+//			uid: uid,
+			created_at: new Date(),
+			updated_at: new Date(),
+			deleted_at: null
+		},
+		controls: {
+			name: 'string',
+			note: 'string',
+			percent_naoh: { default: 1 },
+			lye_discount: {},
+			liquid_lye_ratio: { default: 1 },
+			lye_type: {
+				validate: function(val) {
+					return (val < 0 || val > 2) ? 0 : val
+				}
+			},
+			total_oils_weight: {
+				update: function(require) {
+					return require('oils.weight') //todo: count all oils weight
+				}
+			},
+			// for App, underscore prefix indicates control cannot be assigned, only updated (if update() given)
+			_total_oils_percent: {
+				is_tmp: true,
+				assignable: false,
+				update: function(require) {
+					return require('oils.percent') //todo: count all oils percent
+				}
+			},
+			_total_liquids_weight: {
+				is_tmp: true,
+				assignable: false, //todo: maybe change to allow this control to update liquid_lye_ratio
+				update: function(require) {
+					return require([ //todo: arrays expect all to be added together
+						'_total_naoh_weight',
+						'_total_koh_weight'
+					]) * require('liquid_lye_ratio')
+				}
+			},
+			_total_additives_weight: {
+				is_tmp: true,
+				assignable: false,
+				update: function(require) {
+					return require('additives.weight') // count all additives weight
+				}
+			},
+			_total_naoh_weight: {
+				is_tmp: true,
+				assignable: false,
+				update: function(require) {
+					return [1, 0, require('percent_naoh')][require('lye_type')]
+						* require('oils._naoh_weight')
+						* ( 1 - require('lye_discount') )
+				}
+			},
+			_total_koh_weight: {
+				is_tmp: true,
+				assignable: false,
+				update: function(require) {
+					return [1, 0, require('percent_naoh')][require('lye_type')]
+						* require('oils._naoh_weight')
+						* ( 1 - require('lye_discount') )
+				}
+			},
+			_total_liquids_parts: {
+				is_tmp: true,
+				assignable: false,
+				update: function(require) {
+					return require('liquids.parts');
+				}
+			},
+			_total_recipe_weight: {
+				is_tmp: true,
+				assignable: false,
+				update: function(require) {
+					return require([ //todo: can this be calculated without temporary control values?
+						'total_oils_weight',
+						'_total_naoh_weight',
+						'_total_koh_weight',
+						'_total_liquids_weight',
+						'_total_additives_weight'
+					])
+				}
 			}
 		},
 		lists: {
@@ -148,10 +148,10 @@ function Recipe(uid)
 			controller.save();
 		}
 	}).init(function(controller){
-		controller.list();
+		controller.print();
 	});
 
-	window.recipe = recipe_calc;
+	window.recipe_calc = recipe_calc;
 
 	return recipe_calc.controller;
 }
