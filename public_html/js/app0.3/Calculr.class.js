@@ -1,6 +1,6 @@
 /**
  * @param {object} args
- * @returns {{data_obj: *|{}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, tmp_controls: Array, lists: {}, finally_func: null, addStaticData: addStaticData, addControl: addControl, addList: addList, init: init}}
+ * @returns {{data_obj: *|{}, tmp_data_obj: {}, controller: {}, dependencies: {}, updaters: {}, assigners: {}, lists: {}, finally_func: null, addForeignData: addForeignData, addControl: addControl, addStaticData: addStaticData, addList: addList, init: init}}
  * @constructor
  */
 function Calculr(args)
@@ -134,6 +134,9 @@ function Calculr(args)
 			}
 		}
 
+		/*
+		fixme: maybe instead of assigning this entire function for each control, just assign the needed values and run this when called
+		*/
 		/**
 		 * Assigner performs all the validation, should only be called within Calculr instance
 		 * @param {string|number} val
@@ -169,21 +172,31 @@ function Calculr(args)
 
 	function addToUpdatersAndDependencies(control_name, control_options)
 	{
-		/* Define updaters and dependencies */
 		if ( control_options.update ) {
-
+			// Define updaters
 			if ( Calculr.updaters.hasOwnProperty(control_name) )
 				throw new Error(control_name+' already has updater defined');
 			else {
 				typeCheck(control_options.update, 'function');
 				Calculr.updaters[control_name] = control_options.update;
 			}
-
-			control_options.update.call(Calculr.controller, function(key_str){
-				if ( !Calculr.dependencies.hasOwnProperty(key_str) )
-					Calculr.dependencies[key_str] = [];
-				Calculr.dependencies[key_str].push(control_name);
-			});
+			// Define dependencies
+			/**
+			 * @param {string} key - ex. 'control_name', 'parent.control_name', ['control_name', 'control2_name']
+			 */
+			function cb(key) {
+				function setDep(key) {
+					if ( !Calculr.dependencies.hasOwnProperty(key) )
+						Calculr.dependencies[key] = [];
+					Calculr.dependencies[key].push(control_name);
+				}
+				if ( Array.isArray(key) ) {
+					$.each(key, function(i, key) {
+						setDep(key);
+					});
+				} else setDep(key);
+			}
+			control_options.update.call(Calculr.controller, cb);
 		}
 	}
 
@@ -193,7 +206,8 @@ function Calculr(args)
 	 * @param {object} foreign_controller
 	 * @param {object} controls
 	 */
-	function updateByForeignKey(foreign_key, foreign_controller, controls) {
+	function updateByForeignKey(foreign_key, foreign_controller, controls)
+	{
 		if ( foreign_controller ) {
 			updateAllDependentControls(foreign_key);
 			$.each(controls, function(control_name) {
@@ -207,7 +221,7 @@ function Calculr(args)
 		foreign_controls = {};
 
 	var Calculr = {
-		//todo go-live: which of these properties can probably be private?
+		//todo go-live: which of these properties/methods can probably be private?
 		data_obj: data_obj,
 		tmp_data_obj: tmp_data_obj,
 		controller: controller,
@@ -350,7 +364,7 @@ function Calculr(args)
 		 */
 		addList: function(list_name, list_options)
 		{
-			if ( this.controller.hasOwnProperty(list_name) )
+			if ( Calculr.controller.hasOwnProperty(list_name) )
 				throw new Error(list_name+' already exists.');
 
 			if ( list_options.control !== undefined && list_options.class !== undefined ) {
@@ -403,28 +417,20 @@ function Calculr(args)
 	 */
 	if ( args.static_data ) {
 		typeCheck(args.static_data, 'object');
-		$.each(args.static_data, function(control_name, input){
-			Calculr.addStaticData(control_name, input);
-		});
+		$.each(args.static_data, Calculr.addStaticData);
 	}
 	if ( args.controls ) {
 		typeCheck(args.controls, 'object');
 		// Iterate through each group of control options
-		$.each(args.controls, function (control_name, control_options) {
-			Calculr.addControl(control_name, control_options);
-		});
+		$.each(args.controls, Calculr.addControl);
 	}
 	if ( args.lists ) {
 		typeCheck(args.lists, 'object');
-		$.each(args.lists, function(list_name, list_options) {
-			Calculr.addList(list_name, list_options);
-		});
+		$.each(args.lists, Calculr.addList);
 	}
 	if ( args.foreign_data ) {
 		typeCheck(args.foreign_data, 'object');
-		$.each(args.foreign_data, function(foreign_key, options){
-			Calculr.addForeignData(foreign_key, options);
-		});
+		$.each(args.foreign_data, Calculr.addForeignData);
 	}
 
 	window.Calculr_instance = Calculr;

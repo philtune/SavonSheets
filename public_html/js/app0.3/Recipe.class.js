@@ -47,7 +47,6 @@ function Recipe(uid)
 			}
 		},
 		static_data: {
-//			uid: uid,
 			created_at: new Date(),
 			updated_at: new Date(),
 			deleted_at: null

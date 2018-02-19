@@ -23,25 +23,6 @@ function RecipeOil(uid)
 				recipe_calc.data_obj.oils = App.fixObjOrder(recipe_calc.data_obj.oils);
 				recipe_calc.controller.save();
 				//todo: find any references to this object instance to delete or =null for garbage collection
-			},
-			updateByOilId: function() {
-				var oil_instance = Oil(this.oil_id); // from the Oils table
-				if ( oil_instance ) {
-//					assign('_name', oil_instance.name);
-//					assign('_naoh_sap', oil_instance.naoh_sap+5);
-//					assign('_koh_sap', oil_instance.koh_sap);
-					recipe_oil_tmp_data._name = oil_instance.name;
-					recipe_oil_tmp_data._naoh_sap = oil_instance.naoh_sap;
-					recipe_oil_tmp_data._koh_sap = oil_instance.koh_sap;
-				} else {
-//					assign('_name', '');
-//					assign('_naoh_sap', 0);
-//					assign('_koh_sap', 0);
-					recipe_oil_tmp_data._name = '';
-					recipe_oil_tmp_data._naoh_sap = 0;
-					recipe_oil_tmp_data._koh_sap = 0;
-				}
-				//		var oil_instance = Oil(controller.oil_id); // from the Oils table
 			}
 		},
 		foreign_data: {
@@ -56,15 +37,6 @@ function RecipeOil(uid)
 			}
 		},
 		controls: {
-//			oil_id: {
-//				type: 'string',
-//				after: function() {
-//					this.updateByOilId();
-//				}
-//			},
-//			_name: { type: 'string',  is_tmp: true,  assignable: false },
-//			_naoh_sap: { is_tmp: true,  assignable: false },
-//			_koh_sap: { is_tmp: true,  assignable: false },
 			pos: {
 				default: Object.keys(recipe_calc.data_obj.oils).length-1,
 				validate: function(val) {
@@ -99,7 +71,6 @@ function RecipeOil(uid)
 			recipe_calc.controller.save();
 		}
 	}).init(function(controller){
-//		controller.updateByOilId();
 		recipe_calc.controller.print();
 	});
 
