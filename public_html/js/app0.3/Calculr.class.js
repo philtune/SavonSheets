@@ -67,6 +67,41 @@ function Calculr(args)
 	}
 
 	/**
+	 * Performs all the validation, should only be called within Calculr instance
+	 *
+	 * @param {string} control_name
+	 * @param {*} val
+	 * @returns {boolean} - true if successful, false on failure
+	 */
+	function assignControl(control_name, val)
+	{
+		var this_data_obj = Calculr.controls[control_name].this_data_obj,
+			control_options = Calculr.controls[control_name].control_options;
+		// If validate property is defined...
+		if ( control_options.validate !== undefined ) {
+			typeCheck(control_options.validate, 'function');
+			var result = control_options.validate(val);
+			// Exit if validate() returns false
+			if ( result === false ) return false;
+			this_data_obj[control_name] = result;
+		} else { // If validate property is not defined or false...
+			// and if type property === number
+			if ( control_options.type ) {
+				if ( control_options.type === 'number' ) {
+					// convert to number and check for NaN
+					val = val / 1;
+					if (isNaN(val)) throw new Error('Value must be a number');
+				} else if ( control_options.type === 'string' && typeof val === 'number' )
+					val = val + '';
+				else typeCheck(val, control_options.type);
+			}
+			// If we've made it this far, assign the value to our data
+			this_data_obj[control_name] = val;
+		}
+		return true;
+	}
+
+	/**
 	 * Update a control value directly using its assigner instead of its setter (to avoid dependency updates)
 	 * @param {string} control_name
 	 */
@@ -93,7 +128,8 @@ function Calculr(args)
 				}
 				var result = updater.call(Calculr.controller, cb);
 				if ( result !== undefined && result !== false && !isNaN(result) )
-					Calculr.assigners[control_name](result);
+					assignControl(control_name, result);
+//					Calculr.assigners[control_name](result);
 			}
 		}
 	}
@@ -134,37 +170,9 @@ function Calculr(args)
 			}
 		}
 
-		/*
-		fixme: maybe instead of assigning this entire function for each control, just assign the needed values and run this when called
-		*/
-		/**
-		 * Assigner performs all the validation, should only be called within Calculr instance
-		 * @param {string|number} val
-		 * @returns {boolean} - true if successful, false on failure
-		 */
-		Calculr.assigners[control_name] = function(val) {
-			// If validate property is defined...
-			if ( control_options.validate !== undefined ) {
-				typeCheck(control_options.validate, 'function');
-				var result = control_options.validate(val);
-				// Exit if validate() returns false
-				if ( result === false ) return false;
-				this_data_obj[control_name] = result;
-			} else { // If validate property is not defined or false...
-				// and if type property === number
-				if ( control_options.type ) {
-					if ( control_options.type === 'number' ) {
-						// convert to number and check for NaN
-						val = val / 1;
-						if (isNaN(val)) throw new Error('Value must be a number');
-					} else if ( control_options.type === 'string' && typeof val === 'number' )
-						val = val + '';
-					else typeCheck(val, control_options.type);
-				}
-				// If we've made it this far, assign the value to our data
-				this_data_obj[control_name] = val;
-			}
-			return true;
+		Calculr.controls[control_name] = {
+			this_data_obj: this_data_obj,
+			control_options: control_options
 		};
 
 		return control_options;
@@ -211,7 +219,8 @@ function Calculr(args)
 		if ( foreign_controller ) {
 			updateAllDependentControls(foreign_key);
 			$.each(controls, function(control_name) {
-				Calculr.assigners[control_name](foreign_controller[control_name]);
+				var val = foreign_controller[control_name];
+				assignControl(control_name, val);
 				updateAllDependentControls(control_name);
 			});
 		}
@@ -225,9 +234,9 @@ function Calculr(args)
 		data_obj: data_obj,
 		tmp_data_obj: tmp_data_obj,
 		controller: controller,
+		controls: {},
 		dependencies: {},
 		updaters: {},
-		assigners: {},
 		lists: {},
 		finally_func: finally_func,
 
@@ -254,7 +263,7 @@ function Calculr(args)
 				 * @param {string|number} val
 				 */
 				set: function(val) {
-					if ( Calculr.assigners[foreign_key](val) ) {
+					if ( assignControl(foreign_key, val) ) {
 						updateByForeignKey(foreign_key, options.class(val), options.controls);
 						// Apply this function after all updates are completed
 						if ( Calculr.finally_func ) {
@@ -320,7 +329,8 @@ function Calculr(args)
 						alert(control_name+' is not assignable.');
 						return false;
 					} else {
-						if ( Calculr.assigners[control_name](val) ) {
+						if ( assignControl(control_name, val) ) {
+//						if ( Calculr.assigners[control_name](val) ) {
 							updateAllDependentControls(control_name);
 							// Apply this function after all updates are completed
 							if (Calculr.finally_func) {
@@ -378,6 +388,7 @@ function Calculr(args)
 				};
 				Calculr.lists[list_name] = list_options.control;
 			}
+			//todo: build this out some more; maybe hold dependencies for entire list (so individual list items don't need to hold them)
 		},
 
 		/**
