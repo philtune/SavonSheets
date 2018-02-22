@@ -1,5 +1,10 @@
 var Data = {
 
+	/**
+	 *
+	 * @param {string} table
+	 * @returns {{}}
+	 */
     get_table : function(table)
     {
         var result = {},
@@ -14,16 +19,33 @@ var Data = {
         return result;
     },
 
+	/**
+	 *
+	 * @param {string} table
+	 * @param {string} uid
+	 * @returns {{}}
+	 */
     get_table_row : function(table, uid)
     {
         return JSON.parse(localStorage.getItem(table+'['+uid+']'));
     },
 
+	/**
+	 *
+	 * @param {string} table
+	 * @param {string} uid
+	 * @param {{}} data
+	 */
     update_table_row : function(table, uid, data)
     {
         localStorage.setItem(table+'['+uid+']',JSON.stringify(data));
     },
 
+	/**
+	 *
+	 * @param {string} table
+	 * @param {string} uid
+	 */
     delete_table_row : function(table, uid)
     {
         localStorage.removeItem(table+'['+uid+']');

@@ -34,7 +34,8 @@ function Recipe(uid)
 				}
 				UI.list_oils();
 				UI.out_oil('');
-				return {};
+				//todo: find any references to this object instance to delete or =null for garbage collection
+				return null;
 			},
 			print: function() {
 				UI.list_recipes();
