@@ -28,7 +28,17 @@ function Recipe(uid)
 		controls: {
 			name: 'string',
 			note: 'string',
-			percent_naoh: { default: 1 }
+			percent_naoh: { default: 1 },
+			lye_discount: {},
+			liquid_lye_ratio: { default: 1 },
+			lye_type: {
+				validate: function(val) {
+					return (val < 0 || val > 2) ? 0 : val
+				}
+			}
+		},
+		finally_func: function(controller) {
+			controller.save();
 		}
 	});
 
