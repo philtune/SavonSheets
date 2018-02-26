@@ -22,9 +22,6 @@ function Recipe(uid)
 	var recipe_calc = new Calculr({
 		data: recipe_data,
 		tmp_data: recipe_tmp_data,
-		controller: {
-
-		},
 		controls: {
 			name: 'string',
 			note: 'string',
@@ -35,6 +32,97 @@ function Recipe(uid)
 				validate: function(val) {
 					return (val < 0 || val > 2) ? 0 : val
 				}
+			},
+			created_at: {
+				is_static: true,
+				default: new Date()
+			},
+			updated_at: {
+				is_static: true,
+				default: new Date()
+			},
+			deleted_at: {
+				is_static: true,
+				default: null
+			}
+		},
+		lists: {
+			oils: {
+				controls: {
+					oil_id: {
+						type: 'string',
+						foreign: {
+							model: Oil,
+							controls: ['koh_sap', 'naoh_sap']
+						}
+					},
+					percent: {
+						validate: function(val) {
+							return App.round(val, 4)
+						},
+						update: function(require) {
+							var result = require('this.weight') / require('oils.weight');
+							return isFinite(result) ? App.round(result, 4) : 0
+						}
+					},
+					weight: {
+						is_tmp: true,
+						update: function(require) {
+							return require('oils.weight') * require('this.percent')
+						}
+					},
+					// for App, underscore prefix indicates control cannot be assigned, only updated (if update() given)
+					_naoh_weight: {
+						is_tmp: true,
+						is_assignable: false,
+						update: function(require) {
+							return App.round(require('this.weight') * require('this.naoh_sap'), 5)
+						}
+					},
+					_koh_weight: {
+						is_tmp: true,
+						is_assignable: false,
+						update: function(require) {
+							return App.round(require('this.weight') * require('this.koh_sap'), 5)
+						}
+					}
+				}
+			},
+			liquids: {
+
+			},
+			additives: {
+
+			}
+		},
+		controller: {
+			print: function() {
+				UI.list_recipes();
+				UI.out_recipe(UI.toJSON(recipe_data));
+				UI.out_recipe_tmp(UI.toJSON(recipe_tmp_data));
+				return this;
+			},
+			save: function() {
+				this.updated_at = new Date();
+				Data.update_table_row('recipe', uid, recipe_data);
+				this.print();
+				return this;
+			},
+			copy: function() {
+				uid = create_uid(3, Data.get_table('recipe'));
+				this.name += ' (Copy)';
+				this.created_at = new Date();
+				this.save();
+				return this;
+			},
+			delete: function() {
+				if ( Data.get_table_row('recipe', uid) && confirm('Are you sure you want to delete this recipe?') ) {
+					Data.delete_table_row('recipe', uid);
+				}
+				UI.list_oils();
+				UI.out_oil('');
+				//todo: find any references to this object instance to delete or =null for garbage collection
+				return null;
 			}
 		},
 		finally_func: function(controller) {

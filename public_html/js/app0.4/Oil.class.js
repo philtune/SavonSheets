@@ -49,7 +49,7 @@ function Oil(uid)
 		controls: {
 			name: 'string',
 			koh_sap: {
-				set : function(val) {
+				set: function(val) {
 					return App.round(val, 4);
 				},
 				update: function(require) {

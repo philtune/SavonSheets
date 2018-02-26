@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Savon Sheets</title>
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans|Inconsolata" rel="stylesheet">
+	<!-- <link rel="stylesheet" href="/css/style.css"> -->
+	<style>
+		body {
+			font-family: 'Open Sans', sans-serif;
+			background-color: #EFEFEF;
+			color: #333333;
+			font-size: 13px;
+			margin: 0;
+		}
+		.padded {
+			padding: 16px;
+		}
+		.recipe_tmp_console, .recipe_console, .oil_console {
+			position: fixed;
+			top: 0;
+			bottom: 0;
+			width: 50%;
+			background-color: #666666; color: white;
+			overflow: auto;
+		}
+		.recipe_tmp_console {
+			right: 0%;
+		}
+		.recipe_console {
+			right: 0%;
+		}
+		.oil_console {
+			right: 50%;
+		}
+		.list {
+			background-color: #444444;
+		}
+		.console {
+			white-space: pre;
+			font-family: 'Inconsolata', monospace;
+			font-size: 15px;
+			tab-size: 4;
+		}
+		button:focus {
+			background-color: #dbe0f2;
+			outline: none;
+		}
+		button span {
+			font-family: 'Courier New', monospace;
+			background-color: #0020a929;
+			color: #001358;
+			display: inline-block;
+			padding: 2px 2px;
+		}
+	</style>
+</head>
+<body>
+<script>var templates = {};</script>
+<div class="display">
+	<div class="oil_console">
+		<div class="padded list">
+			<table border="1">
+				<thead>
+				<tr>
+					<td></td>
+					<th>Name</th>
+					<th>NaOH Sap</th>
+					<th>KOH Sap</th>
+				</tr>
+				</thead>
+				<tbody id="oil_list">
+				<script>
+					templates.oil_row = '' +
+						'<tr>' +
+						'<td><button>use <span>"{{ uid }}"</span></button></td>' +
+						'<td>{{ name }}</td>' +
+						'<td>{{ naoh_sap }}</td>' +
+						'<td>{{ koh_sap }}</td>' +
+						'</tr>';
+				</script>
+				</tbody>
+			</table>
+		</div>
+		<div class="padded console">data_obj: <span id="oil_console">{}</span></div>
+		<div class="padded console">tmp_data_obj: <span id="oil_tmp_console">{}</span></div>
+	</div>
+	<div class="recipe_console">
+		<div class="padded list">
+			<table border="1">
+				<thead>
+				<tr>
+					<td></td>
+					<th>Name</th>
+					<th>Last Updated</th>
+				</tr>
+				</thead>
+				<tbody id="recipe_list">
+				<script>
+					templates.recipe_row = '' +
+						'<tr>' +
+						'<td><button>use <span>"{{ uid }}"</span></button></td>' +
+						'<td>{{ name }}</td>' +
+						'<td>{{ updated_at }}</td>' +
+						'</tr>';
+				</script>
+				</tbody>
+			</table>
+		</div>
+		<div class="padded console">data_obj: <span id="recipe_console">{}</span></div>
+		<div class="padded console">tmp_data_obj: <span id="recipe_tmp_console">{}</span></div>
+	</div>
+	<!--<div class="recipe_tmp_console">-->
+	<!--</div>-->
+</div>
+
+<!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script> -->
+<script src="/js/lib/jquery-3.2.1.min.js"></script>
+<script src="/js/lib/library.js"></script>
+<script src="/js/lib/date.format.js"></script>
+<script src="/js/lib/Data.js"></script>
+<script src="/js/lib/UI.js"></script>
+<script src="/js/app1.1/Calculr.js"></script>
+<script src="/js/app1.1/Oil.class.js"></script>
+<script src="/js/app1.1/Recipe.class.js"></script>
+<script src="/js/lib/App.js"></script>
+</body>
+</html>

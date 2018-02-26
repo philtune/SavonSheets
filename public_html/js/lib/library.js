@@ -8,6 +8,7 @@ function typeCheck(val, type, check_defined) {
 	var is_defined = ( val === undefined );
 	if ( ( check_defined && is_defined ) || ( !check_defined && !is_defined && typeof val !== type ) )
 		throw new Error('Expecting '+type+', received '+(typeof val));
+	return val;
 }
 
 function _dataControls(label, new_arr)

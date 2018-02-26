@@ -5,30 +5,6 @@
  */
 function Calculr(args)
 {
-
-	function updateData(control_name, val)
-	{
-		var control = Calculr.controls[control_name];
-		if ( typeof control.validater === 'function' ) {
-			var result = control.validater(val);
-			// Exit if validate() returns false
-			if ( result === false ) return false;
-			control.data[control_name] = result;
-		} else { // If validate property is not defined...
-			// and if type property === number
-			if ( control.type === 'number' ) {
-				// convert to number and check for NaN
-				val = val / 1;
-				if (isNaN(val)) throw new Error('Value must be a number');
-			} else if ( control.type === 'string' && typeof val === 'number' )
-				val = val + '';
-			else typeCheck(val, control.type);
-			// If we've made it this far, assign the value to our data
-			control.data[control_name] = val;
-		}
-		return true;
-	}
-
 	/**
 	 * Build a string array of all controls that need to be updated when a depended control is itself updated.
 	 *
@@ -53,35 +29,61 @@ function Calculr(args)
 		return result_arr;
 	}
 
-
-	//FIXME: for reference only, delete after needed
-	function addToUpdatersAndDependencies(control_name, control_options)
+	/**
+	 * Runs validation and assigns result to data object
+	 *
+	 * @param {string} control_name
+	 * @param {*} val
+	 * @returns {*|boolean} - validated value on success, false on failure
+	 */
+	function assignToControlData(control_name, val)
 	{
-		if ( control_options.update ) {
-			// Define updaters
-			if ( Calculr.updaters.hasOwnProperty(control_name) )
-				throw new Error(control_name+' already has updater defined');
-			else {
-				typeCheck(control_options.update, 'function');
-				Calculr.updaters[control_name] = control_options.update;
-			}
-			// Define dependencies
+		var control = Calculr.controls[control_name];
+
+		// Run type conversions/checks
+		if ( control.type === 'number' ) {
+			// convert to number and check for NaN
+			val = val / 1;
+			if (isNaN(val)) throw new Error('Value must be a number');
+		} else if ( control.type === 'string' && typeof val === 'number' )
+			val = val + '';
+		else typeCheck(val, control.type);
+
+		// If we've made it this far, check for user defined validator
+		if ( typeof control.validator === 'function' )
+			val = control.validator.call(Calculr.controls, val);
+		if ( val !== false )
+			control.data[control_name] = val;
+
+		return val;
+
+	}
+
+	function buildControlUpdaterDependencies(control)
+	{
+		if ( typeof control.autoupdater === 'function' ) {
 			/**
-			 * @param {string} key - ex. 'control_name', 'parent.control_name', ['control_name', 'control2_name']
+			 * Define dependencies
+			 *
+			 * @param {*} dep_control_name - ex. 'control_name', 'list_name.control_name', ['control_name', 'control2_name']
+			 * @callback
 			 */
-			function cb(key) {
-				function setDep(key) {
-					if ( !Calculr.dependencies.hasOwnProperty(key) )
-						Calculr.dependencies[key] = [];
-					Calculr.dependencies[key].push(control_name);
+			function defineDependenciesCallback(dep_control_name) {
+				function setDep(control_name) {
+					if ( !Calculr.controls.hasOwnProperty(control_name) )
+						Calculr.controls[control_name] = [];
+					if ( !Calculr.controls[control_name].hasOwnProperty('dependencies') )
+						Calculr.controls[control_name].dependencies = [];
+					Calculr.controls[control_name].dependencies.push(control_name);
 				}
-				if ( Array.isArray(key) ) {
-					$.each(key, function(i, key) {
-						setDep(key);
+				if ( Array.isArray(dep_control_name) ) {
+					$.each(dep_control_name, function(i, control_name) {
+						setDep(control_name);
 					});
-				} else setDep(key);
+				} else setDep(dep_control_name);
 			}
-			control_options.update.call(Calculr.controller, cb);
+
+			control.autoupdater.call(Calculr.controller, defineDependenciesCallback);
 		}
 	}
 
@@ -94,7 +96,7 @@ function Calculr(args)
 		init_controls: [],
 		finally_func: args.finally_func || null,
 
-		//todo: define getter and setter on Calculr.controller[control_name] to point to control.get()|set()
+		//todo: define getter and setter on Calculr.controller[control_name] to point to control.getControl()|assignControl()
 
 		/**
 		 *
@@ -102,55 +104,103 @@ function Calculr(args)
 		 * @param {*} control_options
 		 * @returns {Calculr}
 		 */
-		addControl: function(control_name, control_options) {
-			//todo: use this for all controls, including foreign, etc.
+		addControl: function(control_name, control_options)
+		{
 			if ( typeof control_options === 'string' )
 				control_options = { type: control_options };
 
 			var control = {
 				data: control_options.is_tmp ? Calculr.tmp_data : Calculr.data,
 				type: control_options.type || 'number',
-				updater: control_options.update || null,
-				validater: control_options.validate || null,
+				autoupdater: control_options.update || null,
+				validator: control_options.validate || null,
 				is_foreign: control_options.is_foreign || false,
-				get: function() {
-					return control.data[control_name];
+				is_assignable: control_options.is_assignable || true,
+				assignData: assignToControlData.bind(this),
+				getControl: function() {
+					return this.data[control_name];
 				},
-				set: function(val) {
-					if ( control_options.assignable === false )
+				assignControl: function(val) {
+					if ( !this.is_assignable )
 						throw new Error(control_name + ' is not assignable.');
+					this.update(val);
+					return this;
+				},
 
-					if ( updateData(control_name, val) ) {
-
-
-						// todo: call updater on all dependent controls
+				/**
+				 *
+				 * @param {string|number} val
+				 * @returns {control}
+				 */
+				update: function(val) {
+					val = this.assignData(control_name, val);
+					if ( val ) {
+						// todo: call autoupdater on all dependent controls
 						// - todo: build a list of controls to be updated
-						// Get dependencies arr
-						var tmp_controls = getControlsToBeUpdated([control_name], control_name);
-						// remove control_name before running updaters
-						tmp_controls.shift();
 
-						$.each(tmp_controls, function(i, control_name) {
-							updateControl(control_name);
-						});
-
-
-
-						Calculr.updateAllDependentControls(control_name);
-						// Apply this function after all updates are completed
-						if ( Calculr.finally_func ) {
-							Calculr.finally_func.call(Calculr, Calculr.controller);
-						}
-
+//						// Get dependencies arr
+//						var tmp_controls = getControlsToBeUpdated([control_name], control_name);
+//						// remove control_name before running autoupdaters
+//						tmp_controls.shift();
+//
+//						$.each(tmp_controls, function(i, control_name) {
+//							updateControl(control_name);
+//						});
+//
+//
+//
+//						Calculr.updateAllDependentControls(control_name);
+//						// Apply this function after all updates are completed
+//						if ( Calculr.finally_func ) {
+//							Calculr.finally_func.call(Calculr, Calculr.controller);
+//						}
 					}
+					return this;
 				}
 			};
 
-			if ( typeof control_options.update === 'function' ) {
+			buildControlUpdaterDependencies(control);
 
+			if ( control_options.foreign ) {
+
+				if ( Array.isArray(control_options.foreign.controls) ) {
+					//todo: if string Array, do this, else give customization options
+					$.each(control_options.foreign.controls, function(i, control_name) {
+						var control = {
+							is_foreign: true,
+							is_static: true,
+							is_tmp: true,
+							foreign_key: control_name,
+							is_assignable: false
+						};
+						Calculr.addControl(control_name, control);
+					});
+				}
+
+				var model = typeCheck(control_options.foreign.model, 'function');
+
+				/**
+				 * Update dependents w/ foreign data
+				 * @param val
+				 * @returns {control}
+				 */
+				control.update = function(val) {
+					var instance = model(val);
+					val = instance ? val : '';
+					this.assignData(control_name, val);
+
+					$.each(control_options.foreign.controls, function(i, control_name) {
+						if ( !Calculr.controls.hasOwnProperty(control_name) )
+							throw new Error('Nonexistent control \''+control_name+'\'');
+						var control = Calculr.controls[control_name],
+							val = instance ? instance[control.foreign_key] : 0;
+						control.update(val);
+					});
+
+					return this;
+				}
 			}
 
-			//todo: add dependents property to control
 
 			//todo: set default value for control.data[control_name]
 
@@ -161,15 +211,35 @@ function Calculr(args)
 
 			// Temporary controls will need to be initialized.
 			if ( control_options.is_tmp )
-				Calculr.init_controls.push(control);
+				Calculr.init_controls.push([control_name, control]);
 
 			return this;
+		},
+
+		/**
+		 *
+		 * @param {string} list_name
+		 * @param {object} list_options
+		 */
+		addList: function(list_name, list_options)
+		{
+			var calc_options = Object.assign({
+				data: this.data,
+				tmp_data: this.tmp_data
+			}, list_options);
+			var list_calc = new window.Calculr(calc_options);
+			window[list_name+'_list_calc'] = list_calc;
 		}
 	};
 
 	if ( args.controls )
 		$.each(args.controls, function(key, val) {
 			Calculr.addControl.apply(Calculr, [key, val]);
+		});
+
+	if ( args.lists )
+		$.each(args.lists, function(key, val) {
+			Calculr.addList.apply(Calculr, [key, val]);
 		});
 
 	return Calculr;
