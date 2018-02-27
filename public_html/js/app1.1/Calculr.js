@@ -9,6 +9,7 @@ function Calculr(calc_options)
 	var data_obj = calc_options.data_obj,
 		tmp_data_obj = calc_options.tmp_data_obj || {},
 		tmp_controls = {},
+		controller = calc_options.controller || {},
 		finally_func = calc_options.finally || null;
 
 	function finallyFunc()
@@ -20,7 +21,7 @@ function Calculr(calc_options)
 
 	var Calculr = {
 		controls: {},
-		controller: {},
+		controller: controller,
 
 		/**
 		 *
@@ -212,6 +213,19 @@ function Calculr(calc_options)
 
 		/**
 		 *
+		 * @param {string} list_name
+		 * @param {object} list_options
+		 * @returns {Calculr}
+		 */
+		addList: function(list_name, list_options)
+		{
+
+
+			return this;
+		},
+
+		/**
+		 *
 		 * @param {function} callback
 		 * @param {boolean} [cb_before]
 		 * @returns {Calculr}
@@ -245,6 +259,9 @@ function Calculr(calc_options)
 
 	if ( calc_options.controls )
 		$.each(calc_options.controls, Calculr.addControl.bind(Calculr));
+
+	if ( calc_options.lists )
+		$.each(calc_options.lists, Calculr.addList.bind(Calculr));
 
 	return Calculr;
 }
