@@ -20,6 +20,7 @@ function Recipe(uid)
 	{
 		UI.list_recipes();
 		UI.out_recipe(UI.toJSON(recipe_data));
+		UI.out_recipe_tmp(UI.toJSON(recipe_tmp_data));
 	}
 
 	function save()
@@ -29,28 +30,24 @@ function Recipe(uid)
 		show_index();
 	}
 
-	function duplicate() {
-		uid = create_uid(3, Data.get_table('recipe'));
-		recipe_data.uid = uid; //todo: get rid of uid as soon as possible; it is only used in UI.list_recipes()
-		recipe_data.name += ' (Copy)';
-		recipe_data.created_at = new Date();
-		save();
-	}
-
-	function destroy() {
-		if ( Data.get_table_row('recipe', uid) && confirm('Are you sure you want to delete this recipe?') ) {
-			Data.delete_table_row('recipe', uid);
-		}
-		show_index();
-		window.location.reload(); //fixme: find a better way to destroy controller
-	}
-
 	var recipe_calc = Calculr({
 		data_obj: recipe_data,
 		tmp_data_obj: recipe_tmp_data,
 		controller: {
-			copy: duplicate,
-			delete: destroy
+			copy: function() {
+				uid = create_uid(3, Data.get_table('recipe'));
+				recipe_data.uid = uid; //todo: get rid of uid as soon as possible; it is only used in UI.list_recipes()
+				recipe_data.name += ' (Copy)';
+				recipe_data.created_at = new Date();
+				save();
+			},
+			delete: function() {
+				if ( Data.get_table_row('recipe', uid) && confirm('Are you sure you want to delete this recipe?') ) {
+					Data.delete_table_row('recipe', uid);
+				}
+				show_index();
+				window.location.reload(); //fixme: find a better way to destroy controller
+			}
 		},
 		controls: {
 			uid: { //todo: get rid of uid as soon as possible; it is only used in UI.list_recipes()
@@ -86,18 +83,80 @@ function Recipe(uid)
 				validate: function(val) {
 					return (val < 0 || val > 2) ? 0 : val
 				}
+			},
+			'oils.weight': {
+				after_set: function(control)
+				{
+					//fixme: use recipe_oil controls instead of recipe_data
+					$.each(Object.keys(recipe_data.oils), function(i, uid) {
+						console.log(recipe_data.oils[uid].percent, control.getValue());
+						recipe_data.oils[uid].weight = recipe_data.oils[uid].percent * control.getValue(); //`this` = controls['oils.weight']
+					});
+				},
+				update: function() {
+					var result = 0;
+					//fixme: use recipe_oil controls instead of recipe_data
+					$.each(Object.keys(recipe_data.oils), function(i, uid) {
+						result += recipe_data.oils[uid].weight;
+					});
+					return result;
+				}
+			},
+			'oils.percent': {
+				is_tmp: true,
+				assignable: false,
+				update: function() {
+					var result = 0;
+					//fixme: use recipe_oil controls instead of recipe_data
+					$.each(Object.keys(recipe_data.oils), function(i, uid) {
+						result += recipe_data.oils[uid].percent;
+					});
+					return result;
+				}
 			}
 		},
-		finally: save
-	})
-		.addList('oils', {
-			controls: {
-
+		lists: {
+			oils: {
+				controller: {
+					delete: function() {
+						//todo: delete all references to this recipe_oil
+					}
+				},
+				controls: {
+					weight: {
+						update: function(require) {
+							return require('this.percent') * require('oils.weight')
+						},
+						after_set: function(controls, parent_controls) {
+							parent_controls['oils.weight'].update();
+							//fixme: use recipe_oil controls instead of recipe_data
+//							$.each(Object.keys(recipe_data.oils), function(i, uid) {
+//								recipe_data.oils[uid].percent = recipe_data.oils[uid].weight / recipe_data['oils.weight'];
+//							});
+						}
+					},
+					percent: {
+						update: function(require) {
+							return require('this.weight') / require('oils.weight')
+						},
+						after_set: function(controls, parent_controls) {
+							parent_controls['oils.percent'].update();
+							//fixme: use recipe_oil controls instead of recipe_data
+//							$.each(Object.keys(recipe_data.oils), function(i, uid) {
+//								recipe_data.oils[uid].weight = recipe_data.oils[uid].percent * recipe_data['oils.weight'];
+//							});
+						}
+					}
+				}
 			}
-		})
-		.init(show_index);
+		},
+		finally: save,
+		on_init: show_index
+	}).init(show_index);
 
 	window.recipe_calc = recipe_calc;
+	window.recipe_data = recipe_data;
+	window.recipe_tmp_data = recipe_tmp_data;
 
 	return recipe_calc.controller;
 }
