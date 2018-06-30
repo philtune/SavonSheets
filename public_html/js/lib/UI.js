@@ -76,13 +76,6 @@ var UI = {
         });
     },
 
-    out_recipe_tmp : function(msg)
-    {
-        $(function(){
-            $('#recipe_tmp_console').text(msg);
-        })
-    },
-
     out_recipe : function(msg)
     {
         $(function(){
@@ -90,12 +83,26 @@ var UI = {
         });
     },
 
+	out_recipe_tmp : function(msg)
+	{
+		$(function(){
+			$('#recipe_tmp_console').text(msg);
+		})
+	},
+
     out_oil : function(msg)
     {
         $(function(){
             $('#oil_console').text(msg);
         });
     },
+
+	out_oil_tmp : function(msg)
+	{
+		$(function(){
+			$('#oil_tmp_console').text(msg);
+		})
+	},
 
     toJSON : function(input)
     {
