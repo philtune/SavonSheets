@@ -10,10 +10,10 @@ function Recipe()
 
 	var recipe_calc = new Calculr({
 		data: data,
-		controls: {
+		properties: {
 			settings: {
 				type: 'object',
-				controls: {
+				properties: {
 					unit: {
 						type: 'string',
 						default: 'oz',
@@ -50,16 +50,16 @@ function Recipe()
 			cured_at: {
 				type: 'date',
 				calculate: function(Helper){
-					return Helper.require(Helper.controls.made_at) + Helper.require(Helper.controls.settings.cure_days);
+					return Helper.require(Helper.root.made_at) + Helper.require(Helper.root.settings.cure_days);
 				},
 				is_assignable: false
 			},
 			oils: {
 				type: 'object',
-				controls: {
+				properties: {
 					list: {
 						type: 'array',
-						controls: {
+						properties: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							name: { // todo: make foreign
 								type: 'string',
@@ -164,7 +164,7 @@ function Recipe()
 			},
 			lyes: {
 				type: 'object',
-				controls: {
+				properties: {
 					type: {
 						type: 'number',
 						default: 0,
@@ -173,8 +173,8 @@ function Recipe()
 					},
 					naoh: {
 						type: 'object',
-						controls: {
-							parts: {
+						properties: {
+							parts: { // TODO: get rid of parts
 								type: 'number',
 								default: 1,
 								is_assignable: true
@@ -201,7 +201,7 @@ function Recipe()
 								default: 0,
 								is_assignable: false,
 								calculate: function (Helper) {
-									return Helper.require(Helper.controls.oils.naoh_weight) * Helper.require(Helper.self.percent);
+									return Helper.require(Helper.root.oils.naoh_weight) * Helper.require(Helper.self.percent);
 								}
 							},
 							cost_per_batch: {
@@ -215,8 +215,8 @@ function Recipe()
 					},
 					koh: {
 						type: 'object',
-						controls: {
-							parts: {
+						properties: {
+							parts: { // TODO: get rid of parts
 								type: 'number',
 								default: 0,
 								is_assignable: true
@@ -243,7 +243,7 @@ function Recipe()
 								default: 0,
 								is_assignable: true,
 								calculate: function (Helper) {
-									return Helper.require(Helper.controls.oils.koh_weight) * Helper.require(Helper.self.percent);
+									return Helper.require(Helper.root.oils.koh_weight) * Helper.require(Helper.self.percent);
 								}
 							},
 							cost_per_batch: {
@@ -272,7 +272,166 @@ function Recipe()
 						is_assignable: false
 					}
 				}
-				// TODO
+			},
+			liquids: {
+				type: 'object',
+				properties: {
+					weight: {
+						type: 'number',
+						default: 0,
+						calculate: function(Helper){
+							return Helper.require(Helper.root.lyes.weight) * Helper.require(Helper.root.settings.liquid_lye_ratio);
+						},
+						is_assignable: false
+					},
+					list: {
+						type: 'array',
+						properties: {
+							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
+							name: { // todo: make foreign
+								type: 'string',
+								default: '',
+								is_assignable: true
+							},
+							cost_per_unit: { // todo: make foreign
+								type: 'number',
+								default: 0,
+								is_assignable: true
+							},
+							percent: {
+								type: 'number',
+								default: 0,
+								is_assignable: true
+							},
+							weight: {
+								type: 'number',
+								default: 0,
+								is_assignable: false,
+								calculate: function(Helper){
+									return Helper.require(Helper.parent.weight) * Helper.require(Helper.self.percent);
+								}
+							},
+							cost_per_batch: {
+								type: 'number',
+								calculate: function(Helper){
+									return Helper.require(Helper.self.cost_per_unit) * Helper.require(Helper.self.weight);
+								},
+								is_assignable: false
+							}
+						}
+					},
+					percent: {
+						type: 'number',
+						default: 0,
+						calculate: function(Helper){
+							return Helper.sum(Helper.self.list, 'percent').round(2);
+						},
+						is_assignable: false
+					},
+					cost_per_batch: {
+						type: 'number',
+						default: 0,
+						calculate: function(Helper){
+							return Helper.require(Helper.self.naoh.cost_per_batch) + Helper.require(Helper.self.koh.cost_per_batch);
+						},
+						is_assignable: false
+					}
+				}
+			},
+			additives: {
+				type: 'object',
+				properties: {
+					list: {
+						type: 'array',
+						properties: {
+							name: {
+								type: 'string',
+								default: '',
+								is_assignable: true
+							},
+							cost_per_unit: {
+								type: 'number',
+								default: 0,
+								is_assignable: true
+							},
+							calculation_type: {
+								type: 'string',
+								default: 'oz_ppo',
+								options: ['oz_ppo', 'percent_batch', 'none'],
+								is_assignable: true
+							},
+							multiplier: {
+								type: 'number',
+								default: 0,
+								is_assignable: true
+							},
+							weight: {
+								type: 'number',
+								default: 0,
+								calculation: function(Helper){
+									//todo
+								},
+								is_assignable: true
+							},
+							cost_per_batch: {
+								type: 'number',
+								default: 0,
+								calculation: function(Helper){
+									return Helper.require(Helper.self.weight) * Helper.require(Helper.self.cost_per_unit);
+								},
+								is_assignable: false
+							},
+							note: {
+								type: 'string',
+								default: '',
+								is_assignable: true
+							}
+						}
+					},
+					weight: {
+						type: 'number',
+						default: 0,
+						calculate: function(Helper){
+							return Helper.sum(Helper.self.list, 'weight');
+						},
+						is_assignable: false
+					},
+					cost_per_batch: {
+						type: 'number',
+						default: 0,
+						calculate: function(){
+							return Helper.sum(Helper.self.list, 'cost_per_batch');
+						},
+						is_assignable: false
+					}
+					//todo
+				}
+			},
+			weight: {
+				type: 'number',
+				default: 0,
+				calculate: function(Helper){
+					return Helper.require([
+						Helper.self.oils.weight,
+						Helper.self.lyes.weight,
+						Helper.self.liquids.weight,
+						Helper.self.additives.weight
+					]);
+				},
+				is_assignable: false //todo: eventually this could be true
+			},
+			cost_per_batch: {
+				type: 'number',
+				default: 0,
+				calculate: function(Helper){
+					return Helper.require([
+						Helper.self.oils.cost_per_batch,
+						Helper.self.lyes.cost_per_batch,
+						Helper.self.liquids.cost_per_batch,
+						Helper.self.additives.cost_per_batch
+					]);
+				},
+				is_assignable: false //todo: eventually this could be true
 			}
 		}
 	});
