@@ -21,54 +21,65 @@ function Recipe()
 				properties: {
 					unit: {
 						type: 'string',
+						is_assignable: true,
 						default: 'oz',
 						options: ['oz','g','ml','lb','kg','l'],
-						is_assignable: true
+						save: true
 					},
 					lye_type: {
 						type: 'number',
+						is_assignable: true,
 						default: 0,
 						options: [0,1,2],
-						is_assignable: true
+						save: true
 					},
 					lye_discount:{
 						type: 'number',
+						is_assignable: true,
 						default: 0.05,
-						is_assignable: true
+						save: true
 					},
 					liquid_lye_ratio: {
 						type: 'number',
+						is_assignable: true,
 						default: 1.8,
-						is_assignable: true
+						save: true
 					},
 					cure_days: {
 						type: 'number',
+						is_assignable: true,
 						default: 42,
-						is_assignable: true
+						save: true
 					}
 				}
 			},
 			name: { // todo: remove from calculator but set elsewhere in Recipe class
 				type: 'string',
+				is_assignable: true,
 				default: '',
-				is_assignable: true
+				save: true
 			},
 			note: { // todo: remove from calculator but set elsewhere in Recipe class
 				type: 'string',
+				is_assignable: true,
 				default: '',
-				is_assignable: true
+				save: true
 			},
 			made_at: {
 				type: 'date',
+				is_assignable: true,
 				default: 'NOW()', // todo: default will actually be turned into Date object, NOW() will always be default if this is not defined
-				is_assignable: true
+				save: true
 			},
 			cured_at: {
 				type: 'date',
+				is_assignable: false,
 				calculate: function(Helper){
+					// todo: apply date conversions
 					return Helper.watch(Helper.root.made_at) + Helper.watch(Helper.root.settings.cure_days);
 				},
-				is_assignable: false
+				initialize: true,
+				save: false
 			},
 			oils: {
 				type: 'object',
@@ -79,103 +90,121 @@ function Recipe()
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							name: { // todo: make foreign
 								type: 'string',
+								is_assignable: true,
 								default: '',
-								is_assignable: true
+								save: true
 							},
 							cost_per_unit: { // todo: make foreign
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							naoh_sap: { // todo: make foreign
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							koh_sap: { // todo: make foreign
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							percent: {
 								type: 'number',
+								is_assignable: true,
 								default: 0,
 								calculate: function(Helper){
 									return Helper.watch(Helper.self.weight) / Helper.parent.weight;
 								},
 								initialize: false,
-								is_assignable: true
+								save: true
 							},
 							weight: {
 								type: 'number',
-								default: 0,
 								is_assignable: true,
 								calculate: function(Helper){
 									return Helper.watch(Helper.parent.weight) * Helper.watch(Helper.self.percent);
-								}
+								},
+								initialize: true,
+								save: false
 							},
 							naoh_weight: {
 								type: 'number',
+								is_assignable: false,
 								calculate: function(Helper){
 									return Helper.watch(Helper.self.naoh_sap) * Helper.watch(Helper.self.weight);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							},
 							koh_weight: {
 								type: 'number',
+								is_assignable: false,
 								calculate: function(Helper){
 									return Helper.watch(Helper.self.koh_sap) * Helper.watch(Helper.self.weight);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							},
-							cost_per_batch: {
+							cost: {
 								type: 'number',
+								is_assignable: false,
 								calculate: function(Helper){
 									return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							}
 						}
 					},
 					percent: {
 						type: 'number',
-						default: 0,
+						is_assignable: false,
 						calculate: function(Helper){
-							return Helper.sum(Helper.self.list, 'percent').round(2);
+							return Helper.sum(Helper.self.list, 'percent');
 						},
-						is_assignable: false
+						intialize: true,
+						save: false
 					},
 					weight: {
 						type: 'number',
+						is_assignable: true,
 						default: 0,
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'weight').round(2);
 						},
-						is_assignable: true
+						initialize: false, // todo: calculate function will not be called on init(); usually for properties that watch() each other
+						save: true
 					},
 					naoh_weight: {
 						type: 'number',
-						default: 0,
+						is_assignable: false,
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'naoh_weight').round(2);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					},
 					koh_weight: {
 						type: 'number',
-						default: 0,
+						is_assignable: false,
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'koh_weight').round(2);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					},
-					cost_per_batch: {
+					cost: {
 						type: 'number',
-						default: 0,
+						is_assignable: false,
 						calculate: function(Helper){
-							return Helper.sum(Helper.self.list, 'cost_per_batch').round(2);
+							return Helper.sum(Helper.self.list, 'cost').round(2);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					}
 				}
 			},
@@ -187,34 +216,39 @@ function Recipe()
 						properties: {
 							percent: {
 								type: 'number',
+								is_assignable: false,
 								default: 0,
 								calculate: function(Helper) {
 									return 1 - Helper.watch(Helper.parent.koh.percent);
 								},
-								initialize: false, // todo: calculate function will not be called on init(); usually for properties that watch() each other
-								is_assignable: false
+								initialize: false,
+								save: true
 							},
 							cost_per_unit: { // todo: make foreign
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							weight: {
 								type: 'number',
-								default: 0,
+								is_assignable: true,
 								calculate: function(Helper) {
 									var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.root.settings.lye_type)],
 										discounted = (1 - Helper.watch(Helper.root.settings.lye_discount));
 									return Helper.watch(Helper.root.oils.naoh_weight) * percent * discounted;
 								},
-								is_assignable: true
+								initialize: true,
+								save: false
 							},
-							cost_per_batch: {
+							cost: {
 								type: 'number',
+								is_assignable: false,
 								calculate: function(Helper) {
 									return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							}
 						}
 					},
@@ -223,52 +257,61 @@ function Recipe()
 						properties: {
 							percent: {
 								type: 'number',
+								is_assignable: true,
 								default: 0,
 								calculate: function(Helper) {
 									return 1 - Helper.watch(Helper.parent.naoh.percent);
 								},
-								is_assignable: true,
-								initialize: false
+								initialize: false,
+								save: true
 							},
 							cost_per_unit: { // todo: make foreign
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							weight: {
 								type: 'number',
-								default: 0,
 								is_assignable: true,
 								calculate: function(Helper) {
 									var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.root.settings.lye_type)],
 										discounted = (1 - Helper.watch(Helper.root.settings.lye_discount));
 									return Helper.watch(Helper.root.oils.koh_weight) * percent * discounted;
-								}
+								},
+								initialize: true,
+								save: false
 							},
-							cost_per_batch: {
+							cost: {
 								type: 'number',
+								is_assignable: false,
 								calculate: function(Helper) {
 									return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							}
 						}
 					},
 					weight: {
 						type: 'number',
+						is_assignable: false,
 						default: 0,
 						calculate: function(Helper){
 							return Helper.watch(Helper.self.naoh.weight) + Helper.watch(Helper.self.koh.weight);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					},
-					cost_per_batch: {
+					cost: {
 						type: 'number',
+						is_assignable: false,
 						default: 0,
 						calculate: function(Helper){
-							return Helper.watch(Helper.self.naoh.cost_per_batch) + Helper.watch(Helper.self.koh.cost_per_batch);
+							return Helper.watch(Helper.self.naoh.cost) + Helper.watch(Helper.self.koh.cost);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					}
 				}
 			},
@@ -289,51 +332,62 @@ function Recipe()
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							name: { // todo: make foreign
 								type: 'string',
+								is_assignable: true,
 								default: '',
-								is_assignable: true
+								save: true
 							},
 							cost_per_unit: { // todo: make foreign
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							percent: {
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
+								save: true
 							},
 							weight: {
 								type: 'number',
-								default: 0,
 								is_assignable: false,
+								default: 0,
 								calculate: function(Helper){
 									return Helper.watch(Helper.parent.weight) * Helper.watch(Helper.self.percent);
-								}
+								},
+								initialize: true,
+								save: false
 							},
-							cost_per_batch: {
+							cost: {
 								type: 'number',
+								is_assignable: false,
 								calculate: function(Helper){
 									return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							}
 						}
 					},
 					percent: {
 						type: 'number',
+						is_assignable: false,
 						default: 0,
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'percent').round(2);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					},
-					cost_per_batch: {
+					cost: {
 						type: 'number',
+						is_assignable: false,
 						default: 0,
 						calculate: function(Helper){
-							return Helper.watch(Helper.self.naoh.cost_per_batch) + Helper.watch(Helper.self.koh.cost_per_batch);
+							return Helper.watch(Helper.self.naoh.cost) + Helper.watch(Helper.self.koh.cost);
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					}
 				}
 			},
@@ -345,69 +399,92 @@ function Recipe()
 						properties: {
 							name: {
 								type: 'string',
+								is_assignable: true,
 								default: '',
-								is_assignable: true
+								save: true
+							},
+							type: {
+								type: 'string',
+								is_assignable: true,
+								options: ['calculated', 'weight', 'note'],
+								default: 'calculated',
+								save: true
 							},
 							cost_per_unit: {
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								is_assignable: true
-							},
-							calculation_type: {
-								type: 'string',
-								default: 'oz_ppo',
-								options: ['oz_ppo', 'percent_batch', 'none'],
-								is_assignable: true
-							},
-							multiplier: {
-								type: 'number',
-								default: 0,
-								is_assignable: true
+								save: true
 							},
 							weight: {
 								type: 'number',
+								is_assignable: true,
 								default: 0,
-								calculation: function(Helper){
-									// TODO
-								},
-								is_assignable: true
+								save: true
 							},
-							cost_per_batch: {
+							calculation_type: {
+								type: 'string',
+								is_assignable: true,
+								default: 'oz_ppo',
+								options: ['oz_ppo', 'percent_batch'],
+								save: true
+							},
+							multiplier: {
 								type: 'number',
+								is_assignable: true,
+								default: 0,
+								save: true
+							},
+							output_weight: {
+								type: 'number',
+								is_assignable: false,
+								calculation: function(Helper){
+									// TODO (if is_calculated...)
+								},
+								initialize: true,
+								save: false
+							},
+							cost: {
+								type: 'number',
+								is_assignable: false,
 								default: 0,
 								calculation: function(Helper){
 									return Helper.watch(Helper.self.weight) * Helper.watch(Helper.self.cost_per_unit);
 								},
-								is_assignable: false
+								initialize: true,
+								save: false
 							},
 							note: {
 								type: 'string',
+								is_assignable: true,
 								default: '',
-								is_assignable: true
+								save: true
 							}
 						}
 					},
 					weight: {
 						type: 'number',
-						default: 0,
+						is_assignable: false,
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'weight');
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					},
-					cost_per_batch: {
+					cost: {
 						type: 'number',
-						default: 0,
+						is_assignable: false,
 						calculate: function(){
-							return Helper.sum(Helper.self.list, 'cost_per_batch');
+							return Helper.sum(Helper.self.list, 'cost');
 						},
-						is_assignable: false
+						initialize: true,
+						save: false
 					}
 				}
 			},
 			weight: {
 				type: 'number',
-				default: 0,
+				is_assignable: false,
 				calculate: function(Helper){
 					return Helper.watch([
 						Helper.self.oils.weight,
@@ -416,23 +493,26 @@ function Recipe()
 						Helper.self.additives.weight
 					]);
 				},
-				is_assignable: false //todo: eventually this could be true
+				initialize: true,
+				save: false
 			},
-			cost_per_batch: {
+			cost: {
 				type: 'number',
-				default: 0,
+				is_assignable: false,
 				calculate: function(Helper){
 					return Helper.watch([
-						Helper.self.oils.cost_per_batch,
-						Helper.self.lyes.cost_per_batch,
-						Helper.self.liquids.cost_per_batch,
-						Helper.self.additives.cost_per_batch
+						Helper.self.oils.cost,
+						Helper.self.lyes.cost,
+						Helper.self.liquids.cost,
+						Helper.self.additives.cost
 					]);
 				},
-				is_assignable: false //todo: eventually this could be true
+				initialize: true,
+				save: false
 			}
 		}
 	});
+	// TODO: function that rebalances all weights
 	console.log(recipe_calc);
 //	$('#recipe_console').text(JSON.stringify(recipe_calc, null, '\t'));
 }
@@ -534,19 +614,19 @@ var recipe_data = {
 			{
 				"naoh_weight": 1.072, // C (weight * naoh_sap)
 				"koh_weight": 1.504, // C (weight * koh_sap)
-				"cost_per_batch": 1.36, // C (cost_per_unit * weight)
+				"cost": 1.36, // C (cost_per_unit * weight)
 				weight: 8
 			},
 			{
 				"naoh_weight": 1.128,
 				"koh_weight": 1.584,
-				"cost_per_batch": 0.96,
+				"cost": 0.96,
 				weight: 8
 			},
 			{
 				"naoh_weight": 1.424,
 				"koh_weight": 2.056,
-				"cost_per_batch": 0.86,
+				"cost": 0.86,
 				weight: 8
 			}
 		],
@@ -565,23 +645,23 @@ var recipe_data = {
 		"list_koh_weight": function(){
 			return list_count(this, "koh_weight");
 		},
-		"list_cost_per_batch": function(){
-			return list_count(this, "cost_per_batch");
+		"list_cost": function(){
+			return list_count(this, "cost");
 		},
 		"percent": 1, // C (list_percent())
 		"naoh_weight": 3.624, // C (list_naoh_weight())
 		"koh_weight": 5.144, // C (list_koh_weight())
-		"cost_per_batch": 3.18 // C (list_cost_per_batch())
+		"cost": 3.18 // C (list_cost())
 	},
 	lyes: {
 		"list": [
 			{
 				"weight": 3.33408, // C ((parent.parent.oils.naoh_weight * (1 - parent.discount)) * ([1,0,percent][parent.type])
-				"cost_per_batch": 0.53345 // C (weight * cost_per_unit)
+				"cost": 0.53345 // C (weight * cost_per_unit)
 			},
 			{
 				"weight": 0, // C ((parent.parent.oils.koh_weight * (1 - parent.discount)) * [0,1,percent][parent.percent])
-				"cost_per_batch": 0 // C (weight * cost_per_unit)
+				"cost": 0 // C (weight * cost_per_unit)
 			}
 		],
 		"list_reorder": function(){
@@ -590,17 +670,17 @@ var recipe_data = {
 		"lye_weight": function(){
 			return list_count(this.list, "weight");
 		},
-		"list_cost_per_batch": function(){
-			return list_count(this, "cost_per_batch");
+		"list_cost": function(){
+			return list_count(this, "cost");
 		},
 		"weight": 3.33408, // C (lye_weight())
-		"cost_per_batch": 0.53345 // C (naoh.cost_per_batch + koh.cost_per_batch)
+		"cost": 0.53345 // C (naoh.cost + koh.cost)
 	},
 	liquids: {
 		"list": [
 			{
 				"weight": 6.001344, // C (parent.weight * percent)
-				"cost_per_batch": 0 // C (cost_per_unit * weight)
+				"cost": 0 // C (cost_per_unit * weight)
 			}
 		],
 		"list_reorder": function(){
@@ -609,24 +689,24 @@ var recipe_data = {
 		"liquids_weight": function(){
 			return recipe_data.lye.weight;
 		},
-		"list_cost_per_batch": function(){
-			return list_count(this, "cost_per_batch");
+		"list_cost": function(){
+			return list_count(this, "cost");
 		},
 		"weight": 6.001344, // C (parent.lye.weight * liquid_lye_ratio)
-		"cost_per_batch": 0 // C (liquids_cost_per_batch())
+		"cost": 0 // C (liquids_cost())
 	},
 	additives: {
 		"list" :[
 			{
 				"weight": 1, // C (parent.oils.weight * calculation)
-				"cost_per_batch": 1 // C (weight * cost_per_unit)
+				"cost": 1 // C (weight * cost_per_unit)
 			},
 			{
 			}
 		],
 		"weight": 1, // C (additives_weight())
-		"cost_per_batch": 0 // C (additives_cost_per_batch())
+		"cost": 0 // C (additives_cost())
 	},
 	weight: 34.335424, // C (oils.weight + lye.weight + liquids.weight + additives.weight)
-	cost_per_batch: 4.71 // C (oils.cost_per_batch + lye.cost_per_batch + liquids.cost_per_batch + additives.cost_per_batch)
+	cost: 4.71 // C (oils.cost + lye.cost + liquids.cost + additives.cost)
 };
