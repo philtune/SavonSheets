@@ -176,13 +176,6 @@ function Recipe()
 					cost: function(Helper){
 						return Helper.watch(Helper.self.naoh.cost) + Helper.watch(Helper.self.koh.cost);
 					}
-//				}, TODO: shorthand for arrays...
-//				arrays: {
-//					list: {
-//						name: 'string',
-//						cost_per_unit: {},
-//						percent: {}...
-//					}
 				}
 			},
 			additives: {
@@ -239,7 +232,6 @@ function Recipe()
 			// TODO: function that rebalances all weights
 		}
 	});
-//	console.log(recipe_calc);
 }
 
 var test_data = {

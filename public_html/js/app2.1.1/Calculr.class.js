@@ -112,6 +112,13 @@ function Calculr(settings)
 				}
 			}
 		}
+		if ( typeof settings.arrays !== 'undefined' ) {
+			for ( var arr_name in settings.arrays ) {
+				if ( settings.arrays.hasOwnProperty(arr_name) ) {
+					addProp(arr_name, {type:'array',properties:settings.arrays[arr_name]}, dest_obj[prop_name].properties)
+				}
+			}
+		}
 	}
 
 	for ( var prop_name in properties ) {
