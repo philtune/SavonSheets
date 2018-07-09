@@ -15,6 +15,9 @@ function Recipe()
 
 	var recipe_calc = new Calculr({
 		data: data,
+		methods: {
+			// TODO: function that rebalances all weights
+		},
 		properties: {
 			settings: {
 				type: 'object',
@@ -512,7 +515,6 @@ function Recipe()
 			}
 		}
 	});
-	// TODO: function that rebalances all weights
 	console.log(recipe_calc);
 //	$('#recipe_console').text(JSON.stringify(recipe_calc, null, '\t'));
 }
