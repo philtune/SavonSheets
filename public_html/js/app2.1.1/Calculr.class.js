@@ -184,31 +184,32 @@ function Calculr(settings)
 
 			switch ( prop_settings.type ) {
 				case 'category':
-					for ( var category_prop_name in prop_settings.properties ) {
-						if ( prop_settings.properties.hasOwnProperty(category_prop_name) ) {
-							var category_prop_settings = prop_settings.properties[category_prop_name];
-							addCalculatorProperty(child_calculator, category_prop_name, category_prop_settings, child_data, child_tmp_data);
-						}
-					}
+					$.each(prop_settings.properties, function(category_prop_name, category_prop_settings){
+						addCalculatorProperty(child_calculator, category_prop_name, category_prop_settings, child_data, child_tmp_data);
+					});
+//					for ( var category_prop_name in prop_settings.properties ) {
+//						if ( prop_settings.properties.hasOwnProperty(category_prop_name) ) {
+//							var category_prop_settings = prop_settings.properties[category_prop_name];
+//							addCalculatorProperty(child_calculator, category_prop_name, category_prop_settings, child_data, child_tmp_data);
+//						}
+//					}
 					break;
 				case 'list':
+					// fixme: list items need to be broken out into their own Calculr instance
+					// IF there are any items existing on init...
 					if ( Object.keys(child_data).length ) {
-						for ( var list_item_key in child_data ) {
-							if ( child_data.hasOwnProperty(list_item_key) ) {
+						// FOR each data item...
+						$.each(child_data, function(list_item_key, item_data){
+							var tmp_item_data = child_tmp_data[list_item_key] = child_tmp_data[list_item_key] || {};
+							var item_calculator = child_calculator[list_item_key] = {};
 
-								var item_data = child_data[list_item_key] = child_data[list_item_key] || {};
-								var tmp_item_data = child_tmp_data[list_item_key] = child_tmp_data[list_item_key] || {};
-								var item_calculator = child_calculator[list_item_key] = {};
-
-								for ( var list_prop_name in prop_settings.properties ) {
-									if ( prop_settings.properties.hasOwnProperty(list_prop_name) ) {
-										//								console.log(list_prop_name, prop_name, list_item_key, prop_settings.properties[list_prop_name], item_data);
-										addCalculatorProperty(item_calculator, list_prop_name, prop_settings.properties[list_prop_name], item_data, tmp_item_data);
-									}
+							for ( var list_prop_name in prop_settings.properties ) {
+								if ( prop_settings.properties.hasOwnProperty(list_prop_name) ) {
+									//								console.log(list_prop_name, prop_name, list_item_key, prop_settings.properties[list_prop_name], item_data);
+									addCalculatorProperty(item_calculator, list_prop_name, prop_settings.properties[list_prop_name], item_data, tmp_item_data);
 								}
-
 							}
-						}
+						});
 					}
 					break;
 			}
