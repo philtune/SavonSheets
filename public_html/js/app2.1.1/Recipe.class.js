@@ -1,6 +1,6 @@
 function Recipe()
 {
-	var data = {};
+	var data = test_data;
 	if ( typeof arguments[0] === 'string' ) {
 		var uid = arguments[0];
 		data = {foo:'bar'};
@@ -11,9 +11,10 @@ function Recipe()
 
 	var recipe_calc = new Calculr({
 		data: data,
+		tmp_data: {},
 		properties: {
 			settings: {
-				type: 'object',
+				type: 'category',
 				properties: {
 					unit: {
 						type: 'string',
@@ -45,16 +46,17 @@ function Recipe()
 				is_assignable: false,
 				calculate: function(Helper){
 					// todo: apply date conversions
-					return Helper.watch(Helper.root.made_at) + Helper.watch(Helper.root.settings.cure_days);
+					return Helper.watch(Helper.properties.made_at) + Helper.watch(Helper.properties.settings.cure_days);
 				}
 			},
 			oils: {
-				type: 'object',
+				type: 'category',
 				properties: {
 					list: {
-						type: 'array',
+						type: 'list',
 						properties: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
+							oil_id: 'string',
 							name: 'string', // todo: make foreign
 							cost_per_unit: {}, // todo: make foreign
 							naoh_sap: {}, // todo: make foreign
@@ -81,13 +83,13 @@ function Recipe()
 							}
 						}
 					},
-					percent: function(Helper){
-						return Helper.sum(Helper.self.list, 'percent');
-					},
 					weight: {
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'weight').round(2);
 						}
+					},
+					percent: function(Helper){
+						return Helper.sum(Helper.self.list, 'percent');
 					},
 					naoh_weight: function(Helper){
 						return Helper.sum(Helper.self.list, 'naoh_weight').round(2);
@@ -101,10 +103,10 @@ function Recipe()
 				}
 			},
 			lyes: {
-				type: 'object',
+				type: 'category',
 				properties: {
 					naoh: {
-						type: 'object',
+						type: 'category',
 						properties: {
 							percent: {
 								calculate: function(Helper) {
@@ -113,9 +115,9 @@ function Recipe()
 							},
 							cost_per_unit: {}, // todo: make foreign
 							weight: function(Helper) {
-								var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.root.settings.lye_type)],
-									discounted = (1 - Helper.watch(Helper.root.settings.lye_discount));
-								return Helper.watch(Helper.root.oils.naoh_weight) * percent * discounted;
+								var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.properties.settings.lye_type)],
+									discounted = (1 - Helper.watch(Helper.properties.settings.lye_discount));
+								return Helper.watch(Helper.properties.oils.naoh_weight) * percent * discounted;
 							},
 							cost: function(Helper) {
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
@@ -123,7 +125,7 @@ function Recipe()
 						}
 					},
 					koh: {
-						type: 'object',
+						type: 'category',
 						properties: {
 							percent: {
 								calculate: function(Helper) {
@@ -132,9 +134,9 @@ function Recipe()
 							},
 							cost_per_unit: {}, // todo: make foreign
 							weight: function(Helper) {
-								var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.root.settings.lye_type)],
-									discounted = (1 - Helper.watch(Helper.root.settings.lye_discount));
-								return Helper.watch(Helper.root.oils.koh_weight) * percent * discounted;
+								var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.properties.settings.lye_type)],
+									discounted = (1 - Helper.watch(Helper.properties.settings.lye_discount));
+								return Helper.watch(Helper.properties.oils.koh_weight) * percent * discounted;
 							},
 							cost: function(Helper) {
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
@@ -150,13 +152,13 @@ function Recipe()
 				}
 			},
 			liquids: {
-				type: 'object',
+				type: 'category',
 				properties: {
 					weight: function(Helper){
-						return Helper.watch(Helper.root.lyes.weight) * Helper.watch(Helper.root.settings.liquid_lye_ratio);
+						return Helper.watch(Helper.properties.lyes.weight) * Helper.watch(Helper.properties.settings.liquid_lye_ratio);
 					},
 					list: {
-						type: 'array',
+						type: 'list',
 						properties: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							name: 'string', // todo: make foreign
@@ -179,10 +181,10 @@ function Recipe()
 				}
 			},
 			additives: {
-				type: 'object',
+				type: 'category',
 				properties: {
 					list: {
-						type: 'array',
+						type: 'list',
 						properties: {
 							name: 'string',
 							cost_per_unit: {}, // todo: make foreign
@@ -229,9 +231,18 @@ function Recipe()
 			}
 		},
 		methods: {
-			// TODO: function that rebalances all weights
+			// todo: method that rebalances all weights?
+		},
+		onUpdate: function(recipe) {
+			$('#recipe_console').text(JSON.stringify(recipe.data, null, '\t'));
+			$('#recipe_tmp_console').text(JSON.stringify(recipe.tmp_data, null, '\t'));
 		}
+	}).init(function(recipe) {
+		$('#recipe_console').text(JSON.stringify(recipe.data, null, '\t'));
+		$('#recipe_tmp_console').text(JSON.stringify(recipe.tmp_data, null, '\t'));
 	});
+
+	return recipe_calc; //fixme: should return Calculr.calculator
 }
 
 var test_data = {
@@ -244,8 +255,8 @@ var test_data = {
 	made_at: "06/22/2018",
 	oils: {
 		weight: 24,
-		list: [
-			{
+		list: {
+			xxx: {
 				oil_id: "xxx",
 				name: "Olive Oil",
 				cost_per_unit: 0.17,
@@ -253,7 +264,7 @@ var test_data = {
 				koh_sap: 0.188,
 				percent: 0.3333
 			},
-			{
+			yyy: {
 				oil_id: "yyy",
 				name: "Lard",
 				cost_per_unit: 0.12,
@@ -261,7 +272,7 @@ var test_data = {
 				koh_sap: 0.198,
 				percent: 0.3333
 			},
-			{
+			zzz: {
 				oil_id: "zzz",
 				name: "Coconut Oil",
 				cost_per_unit: 0.11,
@@ -269,37 +280,35 @@ var test_data = {
 				koh_sap: 0.257,
 				percent: 0.3333
 			}
-		]
+		}
 	},
 	lyes: {
-		list: [
-			{
-				lye_uid: "xxx",
-				name: "Sodium Hydroxide",
-				cost_per_unit: 0.16,
-				percent: 1
-			},
-			{
-				lye_uid: "yyy",
-				name: "Potassium Hydroxide",
-				cost_per_unit: 0.19,
-				percent: 0
-			}
-		]
+		naoh: {
+			lye_uid: "xxx",
+			name: "Sodium Hydroxide",
+			cost_per_unit: 0.16,
+			percent: 1
+		},
+		koh: {
+			lye_uid: "yyy",
+			name: "Potassium Hydroxide",
+			cost_per_unit: 0.19,
+			percent: 0
+		}
 	},
 	liquids: {
-		list: [
-			{
+		list: {
+			xxx: {
 				liquid_uid: "xxx",
 				name: "Rain Water",
 				cost_per_unit: 0,
 				percent: 1
 			}
-		]
+		}
 	},
 	additives: {
-		list: [
-			{
+		list: {
+			xxx: {
 				additive_uid: "xxx",
 				name: "Rain FO (Aztec)",
 				cost_per_unit: 1,
@@ -307,18 +316,20 @@ var test_data = {
 				multiplier: 0.666,
 				note: ""
 			},
-			{
+			yyy: {
 				additive_uid: "yyy",
 				name: "Deep Green Mica (Aztec)",
 				calculation_type: "none",
 				multiplier: 0,
 				note: "1 tsp"
 			}
-		]
+		}
 	}
 };
 
 var recipe = new Recipe();
+recipe.calculator.name = 'Hello There';
+recipe.calculator.oils.list.xxx.name = "Castor Oil";
 
 var recipe_data = {
 	id: "xxx",
@@ -429,4 +440,3 @@ var recipe_data = {
 	weight: 34.335424, // C (oils.weight + lye.weight + liquids.weight + additives.weight)
 	cost: 4.71 // C (oils.cost + lye.cost + liquids.cost + additives.cost)
 };
-//	$('#recipe_console').text(JSON.stringify(recipe_calc, null, '\t'));
