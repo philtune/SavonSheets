@@ -5,35 +5,29 @@ function Calculr(settings)
 		data: settings.data || {},
 		tmp_data: settings.tmp_data || {},
 		onUpdate: settings.onUpdate || null,
+		properties: {},
+		calculator: {},
 		addProps: function(props_obj){
-			for ( var prop_name in props_obj ) {
-				if ( props_obj.hasOwnProperty(prop_name) ) {
-					addProp(prop_name, props_obj[prop_name], this.properties, null);
-				}
-			}
+			$.each(props_obj, function(prop_name, prop_settings){
+				addProp(prop_name, prop_settings, Calculr.properties, null);
+			});
 		},
 		addMethods: function(methods){
-			for ( var method_name in methods ) {
-				if ( methods.hasOwnProperty(method_name) ) {
-					console.log(method_name, methods[method_name]);
-				}
-			}
+			$.each(methods, function(method_name, method){
+				console.log(method_name, methods[method_name]);
+			});
 		},
 		init: function(init_func){
 			if ( this.initialized ) { return false; }
-			for ( var prop_name in this.properties ) {
-				if ( this.properties.hasOwnProperty(prop_name) ) {
-					addCalculatorProperty(this.calculator, prop_name, this.properties[prop_name], this.data, this.tmp_data);
-				}
-			}
+			$.each(Calculr.properties, function(prop_name, prop_settings){
+				addCalculatorProperty(Calculr.calculator, prop_name, prop_settings, Calculr.data, Calculr.tmp_data);
+			});
 			this.initialized = true;
 			if ( typeof init_func === 'function' ) {
 				init_func(this);
 			}
 			return this;
-		},
-		properties: {},
-		calculator: {}
+		}
 	};
 
 	/**
@@ -104,7 +98,7 @@ function Calculr(settings)
 			prop_is_assignable = false;
 			prop_is_tmp = false;
 		}
-		// Assign "property" properties
+		// Assign property settings
 		self_obj[prop_name] = {
 			name: prop_name,
 			type: prop_type,
@@ -127,12 +121,10 @@ function Calculr(settings)
 		};
 		// Find children, recursively call addProp()
 		if ( ['category','list'].indexOf(prop_type) >= 0 ) {
-			self_obj[prop_name].properties = {};
-			for ( var child_prop_name in prop_settings.properties ) {
-				if ( prop_settings.properties.hasOwnProperty(child_prop_name) ) {
-					addProp(child_prop_name, prop_settings.properties[child_prop_name], self_obj[prop_name].properties, self_obj);
-				}
-			}
+			var child_self_obj = self_obj[prop_name].properties = {};
+			$.each(prop_settings.properties, function(child_prop_name, child_prop_settings){
+				addProp(child_prop_name, child_prop_settings, child_self_obj, self_obj);
+			});
 		}
 	}
 
@@ -150,7 +142,9 @@ function Calculr(settings)
 	function addCalculatorProperty(calculator, prop_name, prop_settings, data, tmp_data) {
 		var prop_data = prop_settings.is_tmp ? tmp_data : data;
 
+		// IF property type isn't "category" or "list"...
 		if ( ['category','list'].indexOf(prop_settings.type) < 0 ) {
+			// Define getter and setter for property in the calculator
 			Object.defineProperty(calculator, prop_name, {
 				enumerable: true,
 				configurable: true,
@@ -177,38 +171,44 @@ function Calculr(settings)
 			if ( typeof prop_data[prop_name] === 'undefined' ) {
 				prop_data[prop_name] = prop_settings.default;
 			}
-		} else {
+		} else { // IF property type is "category" or "list"
 			var child_calculator = calculator[prop_name] = {};
 			var child_data = data[prop_name] = data[prop_name] || {};
-			var child_tmp_data = tmp_data[prop_name] = tmp_data[prop_name] || {};
+			var tmp_child_data = tmp_data[prop_name] = tmp_data[prop_name] || {};
 
 			switch ( prop_settings.type ) {
 				case 'category':
-					$.each(prop_settings.properties, function(category_prop_name, category_prop_settings){
-						addCalculatorProperty(child_calculator, category_prop_name, category_prop_settings, child_data, child_tmp_data);
+					// FOR each child property...
+					$.each(prop_settings.properties, function(prop_name, prop_settings){
+						addCalculatorProperty(child_calculator, prop_name, prop_settings, child_data, tmp_child_data);
 					});
-//					for ( var category_prop_name in prop_settings.properties ) {
-//						if ( prop_settings.properties.hasOwnProperty(category_prop_name) ) {
-//							var category_prop_settings = prop_settings.properties[category_prop_name];
-//							addCalculatorProperty(child_calculator, category_prop_name, category_prop_settings, child_data, child_tmp_data);
-//						}
-//					}
 					break;
 				case 'list':
-					// fixme: list items need to be broken out into their own Calculr instance
-					// IF there are any items existing on init...
-					if ( Object.keys(child_data).length ) {
-						// FOR each data item...
-						$.each(child_data, function(list_item_key, item_data){
-							var tmp_item_data = child_tmp_data[list_item_key] = child_tmp_data[list_item_key] || {};
-							var item_calculator = child_calculator[list_item_key] = {};
+					var array_calculator = child_calculator.array = {};
+					var array_data = child_data;
+					var tmp_array_data = tmp_child_data;
 
-							for ( var list_prop_name in prop_settings.properties ) {
-								if ( prop_settings.properties.hasOwnProperty(list_prop_name) ) {
-									//								console.log(list_prop_name, prop_name, list_item_key, prop_settings.properties[list_prop_name], item_data);
-									addCalculatorProperty(item_calculator, list_prop_name, prop_settings.properties[list_prop_name], item_data, tmp_item_data);
-								}
-							}
+					// FOR each data item that may exist on init...
+					$.each(array_data, function(uid, array_item_data){
+						addArrayItem(array_calculator, uid, array_data, tmp_array_data);
+					});
+
+					child_calculator.add = function(uid){
+						// FIXME: uid should be generated, not passed
+						addArrayItem(array_calculator, uid, array_data, tmp_array_data);
+						Calculr.onUpdate(Calculr);
+					};
+
+					child_calculator.delete = function(uid){
+						//todo
+					};
+
+					function addArrayItem(array_calculator, uid, array_data, tmp_array_data){
+						var array_item_calculator = array_calculator[uid] = {};
+						var data = array_data[uid] = {};
+						var tmp_data = tmp_array_data[uid] = tmp_array_data[uid] || {};
+						$.each(prop_settings.properties, function(prop_name, prop_settings){
+							addCalculatorProperty(array_item_calculator, prop_name, prop_settings, data, tmp_data);
 						});
 					}
 					break;

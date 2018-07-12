@@ -9,7 +9,7 @@ function Recipe()
 		data = arguments[0];
 	}
 
-	var recipe_calc = new Calculr({
+	var recipe_Calculr = new Calculr({
 		data: data,
 		tmp_data: {},
 		properties: {
@@ -81,7 +81,8 @@ function Recipe()
 							cost: function(Helper){
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 							}
-						}
+						},
+						save_empty: false
 					},
 					weight: {
 						calculate: function(Helper){
@@ -170,7 +171,8 @@ function Recipe()
 							cost: function(Helper){
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 							}
-						}
+						},
+						save_empty: false
 					},
 					percent: function(Helper){
 						return Helper.sum(Helper.self.list, 'percent').round(2);
@@ -203,7 +205,8 @@ function Recipe()
 							cost: function(Helper){
 								return Helper.watch(Helper.self.weight) * Helper.watch(Helper.self.cost_per_unit);
 							}
-						}
+						},
+						save_empty: false
 					},
 					weight: function(Helper){
 						return Helper.sum(Helper.self.list, 'weight');
@@ -242,5 +245,7 @@ function Recipe()
 		$('#recipe_tmp_console').text(JSON.stringify(recipe.tmp_data, null, '\t'));
 	});
 
-	return recipe_calc; //fixme: should return Calculr.calculator
+	window.recipe_Calculr = recipe_Calculr;
+
+	return recipe_Calculr.calculator; //fixme: should return Calculr.calculator
 }
