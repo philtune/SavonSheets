@@ -67,16 +67,25 @@ function Recipe()
 								}
 							},
 							weight: {
+								class: 'weight',
 								calculate: function(Helper){
 									return Helper.watch(Helper.parent.weight) * Helper.watch(Helper.self.percent);
 								},
 								is_tmp: true
 							},
-							naoh_weight: function(Helper){
-								return Helper.watch(Helper.self.naoh_sap) * Helper.watch(Helper.self.weight);
+							naoh_weight: {
+								class: 'weight',
+								is_assignable: false,
+								calculate: function(Helper){
+									return Helper.watch(Helper.self.naoh_sap) * Helper.watch(Helper.self.weight);
+								}
 							},
-							koh_weight: function(Helper){
-								return Helper.watch(Helper.self.koh_sap) * Helper.watch(Helper.self.weight);
+							koh_weight: {
+								class: 'weight',
+								is_assignable: false,
+								calculate: function(Helper){
+									return Helper.watch(Helper.self.koh_sap) * Helper.watch(Helper.self.weight);
+								}
 							},
 							cost: function(Helper){
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
@@ -85,18 +94,31 @@ function Recipe()
 						save_empty: false
 					},
 					weight: {
+						class: 'weight',
 						calculate: function(Helper){
 							return Helper.sum(Helper.self.list, 'weight').round(2);
 						}
 					},
-					percent: function(Helper){
-						return Helper.sum(Helper.self.list, 'percent');
+					percent: {
+						class: 'weight',
+						is_assignable: false,
+						calculate: function(Helper) {
+							return Helper.sum(Helper.self.list, 'percent');
+						}
 					},
-					naoh_weight: function(Helper){
-						return Helper.sum(Helper.self.list, 'naoh_weight').round(2);
+					naoh_weight: {
+						class: 'weight',
+						is_assignable: false,
+						calculate: function(Helper) {
+							return Helper.sum(Helper.self.list, 'naoh_weight').round(2);
+						}
 					},
-					koh_weight: function(Helper){
-						return Helper.sum(Helper.self.list, 'koh_weight').round(2);
+					koh_weight: {
+						class: 'weight',
+						is_assignable: false,
+						calculate: function(Helper) {
+							return Helper.sum(Helper.self.list, 'koh_weight').round(2);
+						}
 					},
 					cost: function(Helper){
 						return Helper.sum(Helper.self.list, 'cost').round(2);
@@ -115,10 +137,14 @@ function Recipe()
 								}
 							},
 							cost_per_unit: {}, // todo: make foreign
-							weight: function(Helper) {
-								var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.properties.settings.lye_type)],
-									discounted = (1 - Helper.watch(Helper.properties.settings.lye_discount));
-								return Helper.watch(Helper.properties.oils.naoh_weight) * percent * discounted;
+							weight: {
+								class: 'weight',
+								is_assignable: false,
+								calculate: function(Helper) {
+									var percent = [1, 0, Helper.watch(Helper.self.percent)][Helper.watch(Helper.properties.settings.lye_type)],
+										discounted = (1 - Helper.watch(Helper.properties.settings.lye_discount));
+									return Helper.watch(Helper.properties.oils.naoh_weight) * percent * discounted;
+								}
 							},
 							cost: function(Helper) {
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
@@ -134,18 +160,26 @@ function Recipe()
 								}
 							},
 							cost_per_unit: {}, // todo: make foreign
-							weight: function(Helper) {
-								var percent = [1,0,Helper.watch(Helper.self.percent)][Helper.watch(Helper.properties.settings.lye_type)],
-									discounted = (1 - Helper.watch(Helper.properties.settings.lye_discount));
-								return Helper.watch(Helper.properties.oils.koh_weight) * percent * discounted;
+							weight: {
+								class: 'weight',
+								is_assignable: false,
+								calculate: function(Helper) {
+									var percent = [1, 0, Helper.watch(Helper.self.percent)][Helper.watch(Helper.properties.settings.lye_type)],
+										discounted = (1 - Helper.watch(Helper.properties.settings.lye_discount));
+									return Helper.watch(Helper.properties.oils.koh_weight) * percent * discounted;
+								}
 							},
 							cost: function(Helper) {
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
 							}
 						}
 					},
-					weight: function(Helper){
-						return Helper.watch(Helper.self.naoh.weight) + Helper.watch(Helper.self.koh.weight);
+					weight: {
+						class: 'weight',
+						is_assignable: false,
+						calculate: function(Helper) {
+							return Helper.watch(Helper.self.naoh.weight) + Helper.watch(Helper.self.koh.weight);
+						}
 					},
 					cost: function(Helper){
 						return Helper.watch(Helper.self.naoh.cost) + Helper.watch(Helper.self.koh.cost);
@@ -155,8 +189,12 @@ function Recipe()
 			liquids: {
 				type: 'category',
 				properties: {
-					weight: function(Helper){
-						return Helper.watch(Helper.properties.lyes.weight) * Helper.watch(Helper.properties.settings.liquid_lye_ratio);
+					weight: {
+						class: 'weight',
+						is_assignable: false,
+						calculate: function(Helper) {
+							return Helper.watch(Helper.properties.lyes.weight) * Helper.watch(Helper.properties.settings.liquid_lye_ratio);
+						}
 					},
 					list: {
 						type: 'list',
@@ -165,8 +203,12 @@ function Recipe()
 							name: 'string', // todo: make foreign
 							cost_per_unit: {}, // todo: make foreign
 							percent: {},
-							weight: function(Helper){
-								return Helper.watch(Helper.parent.weight) * Helper.watch(Helper.self.percent);
+							weight: {
+								class: 'weight',
+								is_assignable: false,
+								calculate: function(Helper) {
+									return Helper.watch(Helper.parent.weight) * Helper.watch(Helper.self.percent);
+								}
 							},
 							cost: function(Helper){
 								return Helper.watch(Helper.self.cost_per_unit) * Helper.watch(Helper.self.weight);
@@ -197,10 +239,16 @@ function Recipe()
 							},
 							oz_ppo: {},
 							percent_batch: {},
-							input_weight: {},
+							input_weight: {
+								class: 'weight'
+							},
 							note: 'string',
-							weight: function(Helper){
-								// TODO
+							weight: {
+								class: 'weight',
+								is_assignable: false,
+								calculate: function(Helper) {
+									// TODO
+								}
 							},
 							cost: function(Helper){
 								return Helper.watch(Helper.self.weight) * Helper.watch(Helper.self.cost_per_unit);
@@ -208,21 +256,29 @@ function Recipe()
 						},
 						save_empty: false
 					},
-					weight: function(Helper){
-						return Helper.sum(Helper.self.list, 'weight');
+					weight: {
+						class: 'weight',
+						is_assignable: false,
+						calculate: function(Helper) {
+							return Helper.sum(Helper.self.list, 'weight');
+						}
 					},
 					cost: function(Helper){
 						return Helper.sum(Helper.self.list, 'cost');
 					}
 				}
 			},
-			weight: function(Helper){
-				return Helper.watch([
-					Helper.self.oils.weight,
-					Helper.self.lyes.weight,
-					Helper.self.liquids.weight,
-					Helper.self.additives.weight
-				]);
+			weight: {
+				class: 'weight',
+				is_assignable: false,
+				calculate: function(Helper) {
+					return Helper.watch([
+						Helper.self.oils.weight,
+						Helper.self.lyes.weight,
+						Helper.self.liquids.weight,
+						Helper.self.additives.weight
+					]);
+				}
 			},
 			cost: function(Helper){
 				return Helper.watch([

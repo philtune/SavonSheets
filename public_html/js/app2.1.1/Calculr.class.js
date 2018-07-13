@@ -2,11 +2,12 @@ function Calculr(settings)
 {
 	var Calculr = {
 		initialized: false,
-		data: settings.data || {},
-		tmp_data: settings.tmp_data || {},
+		data: settings.data || {}, //fixme: take out of Calculr object
+		tmp_data: settings.tmp_data || {}, //fixme: take out of Calculr object
+		properties: {}, //fixme: take out of Calculr object
+		calculator: {}, //fixme: take out of Calculr object
+		classes: {}, //fixme: take out of Calculr object
 		onUpdate: settings.onUpdate || null,
-		properties: {},
-		calculator: {},
 		addProps: function(props_obj){
 			$.each(props_obj, function(prop_name, prop_settings){
 				addProp(prop_name, prop_settings, Calculr.properties, null);
@@ -98,6 +99,12 @@ function Calculr(settings)
 			prop_is_assignable = false;
 			prop_is_tmp = false;
 		}
+
+		var prop_classes = prop_settings.class || [];
+		if ( typeof prop_classes === 'string' ) {
+			prop_classes = prop_classes.split(' ');
+		}
+
 		// Assign property settings
 		self_obj[prop_name] = {
 			name: prop_name,
@@ -108,6 +115,7 @@ function Calculr(settings)
 			is_assignable: prop_is_assignable,
 			is_tmp: prop_is_tmp, // todo: these will be initialized
 			calculate: prop_settings.calculate || null,
+			classes: prop_classes,
 			helper: {
 				watch: function(watched){
 					watchProp(this, watched);
@@ -144,28 +152,56 @@ function Calculr(settings)
 
 		// IF property type isn't "category" or "list"...
 		if ( ['category','list'].indexOf(prop_settings.type) < 0 ) {
-			// Define getter and setter for property in the calculator
-			Object.defineProperty(calculator, prop_name, {
-				enumerable: true,
-				configurable: true,
+			var prop_accessors = calculator[prop_name] = {
 				get: function () {
 					return prop_data[prop_name];
 				},
-				set: function (val) {
+				assign: function (val) {
 					// Check if property can be assigned
 					if ( !prop_settings.is_assignable ) {
 						console.log('This property cannot be assigned');
 						return false;
 					}
+					this.set(val);
+					// TODO: update all watchers
+					Calculr.onUpdate(Calculr);
+				},
+				set: function(val) {
 					// Check if value passes all validation
 					if ( !prop_settings.validators.every(function (a) {return a(val)}) ) {
 						console.log('invalid value');
 						return false;
 					}
 					prop_data[prop_name] = val;
-					// TODO: update all watchers
-					Calculr.onUpdate(Calculr);
 				}
+			};
+			// Define getter and setter for property in the calculator
+//			Object.defineProperty(calculator, prop_name, {
+//				enumerable: true,
+//				configurable: false,
+//				get: function () {
+//					return prop_data[prop_name];
+//				},
+//				set: function (val) {
+//					// Check if property can be assigned
+//					if ( !prop_settings.is_assignable ) {
+//						console.log('This property cannot be assigned');
+//						return false;
+//					}
+//					// Check if value passes all validation
+//					if ( !prop_settings.validators.every(function (a) {return a(val)}) ) {
+//						console.log('invalid value');
+//						return false;
+//					}
+//					prop_data[prop_name] = val;
+//					// TODO: update all watchers
+//					Calculr.onUpdate(Calculr);
+//				}
+//			});
+
+			$.each(prop_settings.classes, function(i, prop_class){
+				Calculr.classes[prop_class] = Calculr.classes[prop_class] || [];
+				Calculr.classes[prop_class].push(prop_accessors);
 			});
 
 			if ( typeof prop_data[prop_name] === 'undefined' ) {
@@ -189,27 +225,37 @@ function Calculr(settings)
 					var tmp_array_data = tmp_child_data;
 
 					// FOR each data item that may exist on init...
-					$.each(array_data, function(uid, array_item_data){
+					$.each(array_data, function(uid){
 						addArrayItem(array_calculator, uid, array_data, tmp_array_data);
 					});
 
-					child_calculator.add = function(uid){
-						// FIXME: uid should be generated, not passed
-						addArrayItem(array_calculator, uid, array_data, tmp_array_data);
-						Calculr.onUpdate(Calculr);
-					};
-
-					child_calculator.delete = function(uid){
-						//todo
-					};
+					Object.defineProperty(child_calculator, 'add', {
+						configurable: false,
+						value: function(){
+							var item = addArrayItem(array_calculator, create_uid(3, array_data), array_data, tmp_array_data);
+							Calculr.onUpdate(Calculr);
+							return item;
+						}
+					});
 
 					function addArrayItem(array_calculator, uid, array_data, tmp_array_data){
 						var array_item_calculator = array_calculator[uid] = {};
-						var data = array_data[uid] = {};
+						var data = array_data[uid] = array_data[uid] || {};
 						var tmp_data = tmp_array_data[uid] = tmp_array_data[uid] || {};
 						$.each(prop_settings.properties, function(prop_name, prop_settings){
 							addCalculatorProperty(array_item_calculator, prop_name, prop_settings, data, tmp_data);
 						});
+						Object.defineProperty(array_item_calculator, 'delete', {
+							configurable: false,
+							value: function(){
+								delete array_data[uid];
+								delete tmp_array_data[uid];
+								delete array_calculator[uid];
+								Calculr.onUpdate(Calculr);
+								return null;
+							}
+						});
+						return array_item_calculator;
 					}
 					break;
 			}
@@ -220,4 +266,13 @@ function Calculr(settings)
 	Calculr.addMethods(settings.methods || {});
 
 	return Calculr;
+
+	function create_uid(size, compare_obj) {
+		compare_obj = compare_obj || {};
+		var uid = '';
+		do {
+			uid = (Array(size+1).join("0") + ((Math.random() * Math.pow(36,size)) | 0).toString(36)).slice(-size);
+		} while ( compare_obj.hasOwnProperty(uid) );
+		return uid;
+	}
 }

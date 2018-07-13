@@ -104,7 +104,7 @@ function validJSON (jsonString){
     catch (e) { }
 
     return false;
-};
+}
 
 function _each(obj, callback) {
 	switch ( Object.prototype.toString.call( obj ) ) {
