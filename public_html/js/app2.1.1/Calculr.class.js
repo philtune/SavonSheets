@@ -7,7 +7,11 @@ function Calculr(settings)
 		properties: {}, //fixme: take out of Calculr object
 		calculator: {}, //fixme: take out of Calculr object
 		classes: {}, //fixme: take out of Calculr object
-		onUpdate: settings.onUpdate || null,
+		onUpdate: function() {
+			if ( typeof settings.onUpdate !== 'undefined' ) {
+				settings.onUpdate.apply(this, arguments);
+			}
+		},
 		addProps: function(props_obj){
 			$.each(props_obj, function(prop_name, prop_settings){
 				addProp(prop_name, prop_settings, Calculr.properties, null);
@@ -19,17 +23,48 @@ function Calculr(settings)
 			});
 		},
 		init: function(init_func){
+			// Can only init() once
 			if ( this.initialized ) { return false; }
+			// Build the calculator
 			$.each(Calculr.properties, function(prop_name, prop_settings){
 				addCalculatorProperty(Calculr.calculator, prop_name, prop_settings, Calculr.data, Calculr.tmp_data);
 			});
-			this.initialized = true;
+			// TODO: Add watch_list to calculator properties AFTER entire calculator has been built
+			$.each(Calculr.properties, addWatchList);
+			// TODO: Initialize all temporary calculator properties
+			// Run custom initialization code
 			if ( typeof init_func === 'function' ) {
 				init_func(this);
 			}
+			this.initialized = true;
 			return this;
 		}
 	};
+
+	function watchProp(watcher, watched) {
+		console.log(watcher, watched);
+	}
+
+	function addWatchList(prop_name, prop_settings){
+		console.log(prop_name, prop_settings);
+		if ( typeof prop_settings.calculate === 'function' ) {
+			prop_settings.calculate({
+				watch: function(val){
+					console.log('watch-->', val);
+					return this;
+				},
+				ignore: function(val){
+					console.log('ignore-->', val);
+					return this;
+				},
+				sum:function(){return this},
+				round:function(){return this}
+			});
+		}
+		if ( ['category', 'list'].indexOf(prop_settings.type) >= 0 ) {
+			$.each(prop_settings.properties, addWatchList);
+		}
+	}
 
 	/**
 	 * @param {string} prop_name
@@ -116,16 +151,9 @@ function Calculr(settings)
 			is_tmp: prop_is_tmp, // todo: these will be initialized
 			calculate: prop_settings.calculate || null,
 			classes: prop_classes,
-			helper: {
-				watch: function(watched){
-					watchProp(this, watched);
-				},
-				sum:function(){},
-				properties: Calculr.properties,
-				self: self_obj,
-				parent: parent_obj,
-				methods:{/*custom methods*/}
-			}
+			parent: parent_obj,
+			self: self_obj,
+			methods:{/*custom methods*/}
 		};
 		// Find children, recursively call addProp()
 		if ( ['category','list'].indexOf(prop_type) >= 0 ) {
@@ -136,10 +164,6 @@ function Calculr(settings)
 		}
 	}
 
-	function watchProp(watcher, watched) {
-		console.log(watcher, watched);
-	}
-
 	/**
 	 * @param {object} calculator
 	 * @param {string} prop_name
@@ -148,67 +172,59 @@ function Calculr(settings)
 	 * @param {object} tmp_data
 	 */
 	function addCalculatorProperty(calculator, prop_name, prop_settings, data, tmp_data) {
+		// Is property data stored or just temporary?
 		var prop_data = prop_settings.is_tmp ? tmp_data : data;
+		var child_calculator = calculator[prop_name] = {};
+		Object.defineProperty(child_calculator, 'parent', {
+			configurable: false,
+			value: function(){
+				return calculator;
+			}
+		});
 
 		// IF property type isn't "category" or "list"...
 		if ( ['category','list'].indexOf(prop_settings.type) < 0 ) {
-			var prop_accessors = calculator[prop_name] = {
-				get: function () {
-					return prop_data[prop_name];
-				},
-				assign: function (val) {
-					// Check if property can be assigned
-					if ( !prop_settings.is_assignable ) {
-						console.log('This property cannot be assigned');
-						return false;
+			Object.defineProperties(child_calculator, {
+				val: {
+					configurable: false,
+					value: function () {
+						if ( arguments.length ) {
+							var val = arguments[0];
+							// Check if property can be assigned
+							if ( !prop_settings.is_assignable ) {
+								console.log('This property cannot be assigned');
+								return false;
+							}
+							this.update(val);
+							// TODO: update all watchers
+							Calculr.onUpdate(Calculr);
+							return this;
+						}
+						return prop_data[prop_name];
 					}
-					this.set(val);
-					// TODO: update all watchers
-					Calculr.onUpdate(Calculr);
 				},
-				set: function(val) {
-					// Check if value passes all validation
-					if ( !prop_settings.validators.every(function (a) {return a(val)}) ) {
-						console.log('invalid value');
-						return false;
+				update: {
+					configurable: false,
+					value: function(val) {
+						// Check if value passes all validation
+						if ( !prop_settings.validators.every(function (a) {return a(val)}) ) {
+							console.log('invalid value');
+							return false;
+						}
+						prop_data[prop_name] = val;
 					}
-					prop_data[prop_name] = val;
 				}
-			};
-			// Define getter and setter for property in the calculator
-//			Object.defineProperty(calculator, prop_name, {
-//				enumerable: true,
-//				configurable: false,
-//				get: function () {
-//					return prop_data[prop_name];
-//				},
-//				set: function (val) {
-//					// Check if property can be assigned
-//					if ( !prop_settings.is_assignable ) {
-//						console.log('This property cannot be assigned');
-//						return false;
-//					}
-//					// Check if value passes all validation
-//					if ( !prop_settings.validators.every(function (a) {return a(val)}) ) {
-//						console.log('invalid value');
-//						return false;
-//					}
-//					prop_data[prop_name] = val;
-//					// TODO: update all watchers
-//					Calculr.onUpdate(Calculr);
-//				}
-//			});
+			});
 
 			$.each(prop_settings.classes, function(i, prop_class){
 				Calculr.classes[prop_class] = Calculr.classes[prop_class] || [];
-				Calculr.classes[prop_class].push(prop_accessors);
+				Calculr.classes[prop_class].push(child_calculator);
 			});
 
 			if ( typeof prop_data[prop_name] === 'undefined' ) {
 				prop_data[prop_name] = prop_settings.default;
 			}
 		} else { // IF property type is "category" or "list"
-			var child_calculator = calculator[prop_name] = {};
 			var child_data = data[prop_name] = data[prop_name] || {};
 			var tmp_child_data = tmp_data[prop_name] = tmp_data[prop_name] || {};
 
@@ -224,6 +240,13 @@ function Calculr(settings)
 					var array_data = child_data;
 					var tmp_array_data = tmp_child_data;
 
+					Object.defineProperty(array_calculator, 'parent', {
+						configurable: false,
+						value: function(){
+							return child_calculator;
+						}
+					});
+
 					// FOR each data item that may exist on init...
 					$.each(array_data, function(uid){
 						addArrayItem(array_calculator, uid, array_data, tmp_array_data);
@@ -231,7 +254,7 @@ function Calculr(settings)
 
 					Object.defineProperty(child_calculator, 'add', {
 						configurable: false,
-						value: function(){
+						value: function () {
 							var item = addArrayItem(array_calculator, create_uid(3, array_data), array_data, tmp_array_data);
 							Calculr.onUpdate(Calculr);
 							return item;
@@ -243,16 +266,28 @@ function Calculr(settings)
 						var data = array_data[uid] = array_data[uid] || {};
 						var tmp_data = tmp_array_data[uid] = tmp_array_data[uid] || {};
 						$.each(prop_settings.properties, function(prop_name, prop_settings){
+							if ( ['delete','parent'].indexOf(prop_name) >= 0 ) {
+								console.log("'"+prop_name+"' is a protected method name");
+								return true;
+							}
 							addCalculatorProperty(array_item_calculator, prop_name, prop_settings, data, tmp_data);
 						});
-						Object.defineProperty(array_item_calculator, 'delete', {
-							configurable: false,
-							value: function(){
-								delete array_data[uid];
-								delete tmp_array_data[uid];
-								delete array_calculator[uid];
-								Calculr.onUpdate(Calculr);
-								return null;
+						Object.defineProperties(array_item_calculator, {
+							delete: {
+								configurable: false,
+								value: function(){
+									delete array_data[uid];
+									delete tmp_array_data[uid];
+									delete array_calculator[uid];
+									Calculr.onUpdate(Calculr);
+									return array_calculator;
+								}
+							},
+							parent: {
+								configurable: false,
+								value: function(){
+									return array_calculator;
+								}
 							}
 						});
 						return array_item_calculator;

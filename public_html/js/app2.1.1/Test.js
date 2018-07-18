@@ -87,19 +87,19 @@ var test_data = {
 };
 
 var recipe_calc = new Recipe(test_data);
-recipe_calc.settings.unit.assign("lb");
-recipe_calc.name.assign("Cupcakes");
-var recipe_oil = recipe_calc.oils.list.array['xxx'];
-recipe_oil.oil_id.assign("qqq");
-recipe_oil.name.assign("Castor Oil");
-recipe_calc.oils.list.array['zzz'].delete();
-var new_recipe_oil = recipe_calc.oils.list.add();
-new_recipe_oil.oil_id.assign("abc");
-new_recipe_oil.name.assign("Coconut Oil");
-new_recipe_oil.cost_per_unit.assign(0.11);
-new_recipe_oil.naoh_sap.assign(0.178);
-new_recipe_oil.koh_sap.assign(0.257);
-new_recipe_oil.percent.assign(0.3333);
+recipe_calc.settings.unit.val("lb").parent().parent()
+	.name.val("Cupcakes").parent()
+	.oils.list.array['xxx']
+	.oil_id.val("qqq").parent()
+	.name.val("Castor Oil").parent().parent().parent()
+	.array['zzz'].delete().parent()
+    .add()
+	.oil_id.val("abc").parent()
+	.name.val("Coconut Oil").parent()
+	.cost_per_unit.val(0.11).parent()
+	.naoh_sap.val(0.178).parent()
+	.koh_sap.val(0.257).parent()
+	.percent.val(0.3333);
 
 var recipe_data = {
 	id: "xxx",
