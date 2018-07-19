@@ -1,20 +1,25 @@
-function Calculr(settings)
+/**
+ * @param {object} config
+ * @returns {{initialized: boolean, data: (*|{}), tmp_data: ({}|tmp_data), properties: {}, calculator: {}, classes: {}, onUpdate: onUpdate, addProps: addProps, addMethods: addMethods, init: init}}
+ * @constructor
+ */
+function Calculr(config)
 {
 	var Calculr = {
-		initialized: false,
-		data: settings.data || {}, //fixme: take out of Calculr object
-		tmp_data: settings.tmp_data || {}, //fixme: take out of Calculr object
+		initialized: false, //fixme: take out of Calculr object
+		data: config.data || {}, //fixme: take out of Calculr object
+		tmp_data: config.tmp_data || {}, //fixme: take out of Calculr object
 		properties: {}, //fixme: take out of Calculr object
 		calculator: {}, //fixme: take out of Calculr object
 		classes: {}, //fixme: take out of Calculr object
-		onUpdate: function() {
-			if ( typeof settings.onUpdate !== 'undefined' ) {
-				settings.onUpdate.apply(this, arguments);
+		onUpdate: function() { //fixme: take out of Calculr object
+			if ( typeof config.onUpdate !== 'undefined' ) {
+				config.onUpdate.apply(this, arguments);
 			}
 		},
 		addProps: function(props_obj){
-			$.each(props_obj, function(prop_name, prop_settings){
-				addProp(prop_name, prop_settings, Calculr.properties, null);
+			$.each(props_obj, function(prop_name, prop_config){
+				buildCalculrProperty(prop_name, prop_config, Calculr.properties, null);
 			});
 		},
 		addMethods: function(methods){
@@ -29,8 +34,8 @@ function Calculr(settings)
 			$.each(Calculr.properties, function(prop_name, prop_settings){
 				addCalculatorProperty(Calculr.calculator, prop_name, prop_settings, Calculr.data, Calculr.tmp_data);
 			});
-			// TODO: Add watch_list to calculator properties AFTER entire calculator has been built
-			$.each(Calculr.properties, addWatchList);
+			// Add watch_list to calculator properties AFTER entire calculator has been built
+			$.each(Calculr.properties, buildCalculrPropertyWatchers);
 			// TODO: Initialize all temporary calculator properties
 			// Run custom initialization code
 			if ( typeof init_func === 'function' ) {
@@ -41,72 +46,80 @@ function Calculr(settings)
 		}
 	};
 
-	function watchProp(watcher, watched) {
-		console.log(watcher, watched);
-	}
-
-	function addWatchList(prop_name, prop_settings){
-		console.log('"'+prop_name+'"', prop_settings);
-		if ( typeof prop_settings.calculate === 'function' ) {
-			prop_settings.calculate({
-				watch: function(val){
-					function watch(val){
-						if ( typeof val === 'string' ) {
-							var arr = val.split('.');
-							var result = prop_settings.self;
-							if ( arr[0] === 'root' ) {
-								result = Calculr.properties;
-								arr.shift();
+	function buildCalculrPropertyWatchers(prop_name, property){
+		switch ( property.type ) {
+			case 'category':
+				$.each(property.children, buildCalculrPropertyWatchers);
+				break;
+			case 'list':
+				break;
+			default:
+				if ( typeof property.calculate === 'function' ) {
+					property.calculate({
+						watch: function(val){
+							watch(val);
+							function watch(val){
+								if ( typeof val === 'string' ) {
+									var watch_arr = val.split('.');
+									var watched_obj = property.siblings;
+									if ( watch_arr[0] === 'root' ) {
+										watched_obj = Calculr.properties;
+										watch_arr.shift();
+									} else if ( watch_arr[0] === 'parent' ) {
+										watched_obj = property.parent;
+										watch_arr.shift();
+									}
+									$.each(watch_arr, function(i, key){
+										if ( key === 'parent' ) {
+											watched_obj = watched_obj.parent();
+										} else if ( watched_obj.type === 'category' ) {
+											watched_obj = watched_obj.children[key];
+										} else {
+											watched_obj = watched_obj[key];
+										}
+									});
+									watched_obj.watchers.push(property);
+								} else if ( Array.isArray(val) ) {
+									$.each(val, function(i,val){
+										watch(val);
+									})
+								}
 							}
-							$.each(arr, function(i, key){
-								console.log(prop_settings.self); //FIXME!!!!!!!!!!!!!!
-								result = key === 'parent' ? result.parent() : result[key];
-							});
-							console.log(arr, result);
-						} else if ( Array.isArray(val) ) {
-							$.each(val, function(i,val){
-								watch(val);
-							})
-						}
-					}
-					console.log('watch-->');
-					watch(val);
-					return this;
-				},
-				ignore: function(val){
-					console.log('ignore-->', val);
-					return this;
-				},
-				sum:function(){return this},
-				round:function(){return this}
-			});
-		}
-		if ( ['category', 'list'].indexOf(prop_settings.type) >= 0 ) {
-			$.each(prop_settings.properties, addWatchList);
+							return this;
+						},
+						ignore: function(val){
+							console.log('ignore-->', val);
+							return this;
+						},
+						sum:function(){return this},
+						round:function(){return this}
+					});
+				}
+				break;
 		}
 	}
 
 	/**
 	 * @param {string} prop_name
-	 * @param {*} prop_settings
-	 * @param {object} self_obj
-	 * @param {object} parent_obj
+	 * @param {*} prop_config
+	 * @param {object} sibling_properties
+	 * @param {object} parent_property
 	 */
-	function addProp(prop_name, prop_settings, self_obj, parent_obj) {
-		switch ( typeof prop_settings ) {
+	function buildCalculrProperty(prop_name, prop_config, sibling_properties, parent_property) {
+		switch ( typeof prop_config ) {
 			case 'string':
-				prop_settings = {type:prop_settings};
+				prop_config = {type:prop_config};
 				break;
 			case 'function':
-				prop_settings = {
+				prop_config = {
 					is_assignable: false,
-					calculate: prop_settings
+					calculate: prop_config
 				};
 				break;
 			default: break;
 		}
 		var prop_validators = [];
-		var prop_type = prop_settings.type || 'non-negative';
+		var prop_type = prop_config.type || 'non-negative';
 
 		// Set validators
 		switch ( prop_type ) {
@@ -121,16 +134,16 @@ function Calculr(settings)
 		prop_validators.unshift(function(val){
 			return typeof val === prop_type;
 		});
-		if ( Array.isArray(prop_settings.options) ) {
+		if ( Array.isArray(prop_config.options) ) {
 			prop_validators.push(function(val){
-				return prop_settings.options.indexOf(val) >= 0;
+				return prop_config.options.indexOf(val) >= 0;
 			});
 		}
-		if ( typeof prop_settings.validate === 'function' ) {
-			prop_validators.push(prop_settings.validate);
+		if ( typeof prop_config.validate === 'function' ) {
+			prop_validators.push(prop_config.validate);
 		}
 
-		var prop_default = prop_settings.default || null;
+		var prop_default = prop_config.default || null;
 		if ( prop_default === null ) {
 			prop_default = {
 				number: 0,
@@ -143,25 +156,25 @@ function Calculr(settings)
 			}[prop_type];
 		}
 		var prop_is_assignable =
-			(typeof prop_settings.is_assignable !== 'undefined') ?
-				prop_settings.is_assignable :
+			(typeof prop_config.is_assignable !== 'undefined') ?
+				prop_config.is_assignable :
 				true;
 		var prop_is_tmp =
-			(typeof prop_settings.is_tmp !== 'undefined') ?
-				prop_settings.is_tmp :
+			(typeof prop_config.is_tmp !== 'undefined') ?
+				prop_config.is_tmp :
 				!prop_is_assignable;
 		if ( ['category','list'].indexOf(prop_type) >= 0 ) {
 			prop_is_assignable = false;
 			prop_is_tmp = false;
 		}
 
-		var prop_classes = prop_settings.class || [];
+		var prop_classes = prop_config.class || [];
 		if ( typeof prop_classes === 'string' ) {
 			prop_classes = prop_classes.split(' ');
 		}
 
 		// Assign property settings
-		self_obj[prop_name] = {
+		var self_property = sibling_properties[prop_name] = {
 			name: prop_name,
 			type: prop_type,
 //			options: prop_settings.options || null, // not needed later
@@ -169,17 +182,18 @@ function Calculr(settings)
 			validators: prop_validators,
 			is_assignable: prop_is_assignable,
 			is_tmp: prop_is_tmp, // todo: these will be initialized
-			calculate: prop_settings.calculate || null,
+			calculate: prop_config.calculate || null,
 			classes: prop_classes,
-			parent: parent_obj,
-			self: self_obj,
-			methods:{/*custom methods*/}
+			parent: parent_property,
+			siblings: sibling_properties,
+//			methods:{/*custom methods*/},
+			watchers: [],
+			children: {}
 		};
-		// Find children, recursively call addProp()
+		// Find children, recursively call buildCalculrProperty()
 		if ( ['category','list'].indexOf(prop_type) >= 0 ) {
-			var child_self_obj = self_obj[prop_name].properties = {};
-			$.each(prop_settings.properties, function(child_prop_name, child_prop_settings){
-				addProp(child_prop_name, child_prop_settings, child_self_obj, self_obj);
+			$.each(prop_config.children, function(child_prop_name, child_prop_config){
+				buildCalculrProperty(child_prop_name, child_prop_config, self_property.children, sibling_properties);
 			});
 		}
 	}
@@ -251,7 +265,7 @@ function Calculr(settings)
 			switch ( prop_settings.type ) {
 				case 'category':
 					// FOR each child property...
-					$.each(prop_settings.properties, function(prop_name, prop_settings){
+					$.each(prop_settings.children, function(prop_name, prop_settings){
 						addCalculatorProperty(child_calculator, prop_name, prop_settings, child_data, tmp_child_data);
 					});
 					break;
@@ -285,7 +299,7 @@ function Calculr(settings)
 						var array_item_calculator = array_calculator[uid] = {};
 						var data = array_data[uid] = array_data[uid] || {};
 						var tmp_data = tmp_array_data[uid] = tmp_array_data[uid] || {};
-						$.each(prop_settings.properties, function(prop_name, prop_settings){
+						$.each(prop_settings.children, function(prop_name, prop_settings){
 							if ( ['delete','parent'].indexOf(prop_name) >= 0 ) {
 								console.log("'"+prop_name+"' is a protected method name");
 								return true;
@@ -317,8 +331,8 @@ function Calculr(settings)
 		}
 	}
 
-	Calculr.addProps(settings.properties || {});
-	Calculr.addMethods(settings.methods || {});
+	Calculr.addProps(config.properties || {});
+	Calculr.addMethods(config.methods || {});
 
 	return Calculr;
 

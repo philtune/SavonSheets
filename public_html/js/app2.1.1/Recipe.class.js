@@ -15,7 +15,7 @@ function Recipe()
 		properties: {
 			settings: {
 				type: 'category',
-				properties: {
+				children: {
 					unit: {
 						type: 'string',
 						default: 'oz',
@@ -51,10 +51,10 @@ function Recipe()
 			},
 			oils: {
 				type: 'category',
-				properties: {
+				children: {
 					list: {
 						type: 'list',
-						properties: {
+						children: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							oil_id: 'string',
 							name: 'string', // todo: make foreign
@@ -127,10 +127,10 @@ function Recipe()
 			},
 			lyes: {
 				type: 'category',
-				properties: {
+				children: {
 					naoh: {
 						type: 'category',
-						properties: {
+						children: {
 							percent: {
 								calculate: function(Helper) {
 									return 1 - Helper.watch('parent.koh.percent');
@@ -153,7 +153,7 @@ function Recipe()
 					},
 					koh: {
 						type: 'category',
-						properties: {
+						children: {
 							percent: {
 								calculate: function(Helper) {
 									return 1 - Helper.watch('parent.naoh.percent');
@@ -188,7 +188,7 @@ function Recipe()
 			},
 			liquids: {
 				type: 'category',
-				properties: {
+				children: {
 					weight: {
 						class: 'weight',
 						is_assignable: false,
@@ -198,7 +198,7 @@ function Recipe()
 					},
 					list: {
 						type: 'list',
-						properties: {
+						children: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							name: 'string', // todo: make foreign
 							cost_per_unit: {}, // todo: make foreign
@@ -220,16 +220,16 @@ function Recipe()
 						return Helper.sum('list', 'percent').round(2);
 					},
 					cost: function(Helper){
-						return Helper.watch('naoh.cost') + Helper.watch('koh.cost');
+						return Helper.sum('list', 'cost');
 					}
 				}
 			},
 			additives: {
 				type: 'category',
-				properties: {
+				children: {
 					list: {
 						type: 'list',
-						properties: {
+						children: {
 							name: 'string',
 							cost_per_unit: {}, // todo: make foreign
 							output_type: {
