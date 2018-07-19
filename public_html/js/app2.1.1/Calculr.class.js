@@ -46,11 +46,31 @@ function Calculr(settings)
 	}
 
 	function addWatchList(prop_name, prop_settings){
-		console.log(prop_name, prop_settings);
+		console.log('"'+prop_name+'"', prop_settings);
 		if ( typeof prop_settings.calculate === 'function' ) {
 			prop_settings.calculate({
 				watch: function(val){
-					console.log('watch-->', val);
+					function watch(val){
+						if ( typeof val === 'string' ) {
+							var arr = val.split('.');
+							var result = prop_settings.self;
+							if ( arr[0] === 'root' ) {
+								result = Calculr.properties;
+								arr.shift();
+							}
+							$.each(arr, function(i, key){
+								console.log(prop_settings.self); //FIXME!!!!!!!!!!!!!!
+								result = key === 'parent' ? result.parent() : result[key];
+							});
+							console.log(arr, result);
+						} else if ( Array.isArray(val) ) {
+							$.each(val, function(i,val){
+								watch(val);
+							})
+						}
+					}
+					console.log('watch-->');
+					watch(val);
 					return this;
 				},
 				ignore: function(val){
