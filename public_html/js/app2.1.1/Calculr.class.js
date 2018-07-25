@@ -28,7 +28,7 @@ function Calculr(config)
 			if ( Calculr.initialized ) {
 				throw new Error('Cannot add fields after Calculr instance is initialized.');
 			}
-			buildField(field_name, field_config, Calculr.fields, null);
+			buildFieldSettings(field_name, field_config, Calculr.fields, null);
 			return this;
 		},
 		addFields: function(fields_obj){
@@ -42,9 +42,10 @@ function Calculr(config)
 		},
 		addMethod: function(method_name, method){
 			if ( Calculr.initialized ) {
-				throw new Error('Cannot add methods after Calculr instance is initialized.');
+				console.error('Cannot add methods after Calculr instance is initialized.');
 			}
 			console.log(method_name, method);
+			//TODO
 			return this;
 		},
 		addMethods: function(methods){
@@ -63,7 +64,7 @@ function Calculr(config)
 			}
 			// Build the calculator
 			$.each(Calculr.fields, function(field_name, field_settings){
-				addCalculatorField(Calculr.calculator, field_name, field_settings, instance_data, Calculr.tmp_data);
+				buildFieldCalculator(Calculr.calculator, field_name, field_settings, instance_data, Calculr.tmp_data);
 			});
 			// Add watch_list to calculator fields AFTER entire calculator has been built
 			$.each(Calculr.fields, buildFieldWatchers);
@@ -83,7 +84,7 @@ function Calculr(config)
 	 * @param {object} sibling_fields
 	 * @param {object} parent_field
 	 */
-	function buildField(field_name, field_config, sibling_fields, parent_field) {
+	function buildFieldSettings(field_name, field_config, sibling_fields, parent_field) {
 		switch ( typeof field_config ) {
 			case 'string':
 				field_config = {type:field_config};
@@ -106,12 +107,12 @@ function Calculr(config)
 			(typeof field_config.is_tmp !== 'undefined') ?
 				field_config.is_tmp :
 				!field_is_assignable;
-		if ( ['category','list'].indexOf(field_type) >= 0 ) {
+		if ( ['category','iterable'].indexOf(field_type) >= 0 ) {
 			field_is_assignable = false;
 			field_is_tmp = false;
 		}
 
-		// Start building field
+		// Start building field settings
 		var field_settings = sibling_fields[field_name] = {
 			name: field_name,
 			type: field_type,
@@ -121,11 +122,11 @@ function Calculr(config)
 			siblings: sibling_fields
 		};
 
-		// Find children, recursively call buildField()
-		if ( ['category','list'].indexOf(field_type) >= 0 ) {
-			field_settings.children = {};
-			$.each(field_config.children, function(child_field_name, child_field_config){
-				buildField(child_field_name, child_field_config, field_settings.children, sibling_fields);
+		// Find fields, recursively call buildFieldSettings()
+		if ( ['category','iterable'].indexOf(field_type) >= 0 ) {
+			field_settings.fields = {};
+			$.each(field_config.fields, function(child_field_name, child_field_config){
+				buildFieldSettings(child_field_name, child_field_config, field_settings.fields, sibling_fields);
 			});
 		} else {
 			var field_classes = field_config.class || [];
@@ -136,13 +137,13 @@ function Calculr(config)
 			var field_default = field_config.default || null;
 			if ( field_default === null ) {
 				field_default = {
-					number: 0,
+					'number': 0,
 					'non-negative': 0,
-					string: '',
-					boolean: true,
-					date: 'NOW()', //todo
-					category: {},
-					list: {}
+					'string': '',
+					'boolean': true,
+					'date': 'NOW()', //todo
+					'category': {},
+					'iterable': {}
 				}[field_type];
 			}
 
@@ -180,30 +181,30 @@ function Calculr(config)
 
 	/**
 	 * @param {string} field_name
-	 * @param {object} field
+	 * @param {object} field_settings
 	 */
-	function buildFieldWatchers(field_name, field){
-		if ( ['category', 'list'].indexOf(field.type) >= 0 ) {
-			$.each(field.children, buildFieldWatchers);
-		} else if ( typeof field.calculate === 'function' ) {
+	function buildFieldWatchers(field_name, field_settings){
+		if ( ['category', 'iterable'].indexOf(field_settings.type) >= 0 ) {
+			$.each(field_settings.fields, buildFieldWatchers);
+		} else if ( typeof field_settings.calculate === 'function' ) {
 			/**
 			 * @param {array} watch_arr
 			 * @returns {Object|siblings}
 			 */
 			function getWatchedField(watch_arr){
-				var watched_field = field.siblings;
+				var watched_field = field_settings.siblings;
 				if ( watch_arr[0] === 'root' ) {
 					watched_field = Calculr.fields;
 					watch_arr.shift();
 				} else if ( watch_arr[0] === 'parent' ) {
-					watched_field = field.parent;
+					watched_field = field_settings.parent;
 					watch_arr.shift();
 				}
 				$.each(watch_arr, function(i, key){
 					if ( key === 'parent' ) {
 						watched_field = watched_field.parent();
 					} else if ( watched_field.type === 'category' ) {
-						watched_field = watched_field.children[key];
+						watched_field = watched_field.fields[key];
 					} else {
 						watched_field = watched_field[key];
 					}
@@ -217,10 +218,10 @@ function Calculr(config)
 			function watch(field_str){
 				var field_arr = field_str.split('.'),
 					watched_field = getWatchedField(field_arr);
-				watched_field.watchers.push(field);
+				watched_field.watchers.push(field_settings);
 			}
 
-			field.calculate({
+			field_settings.calculate({
 				watch: function(field_str){
 					if ( typeof field_str === 'string' ) {
 						watch(field_str);
@@ -231,12 +232,14 @@ function Calculr(config)
 					}
 					return this;
 				},
-				sum: function(list_str, field_str){
-					var list_arr = list_str.split('.'),
-						watched_field = getWatchedField(list_arr);
-					if ( watched_field.hasOwnProperty('children') && watched_field.children.hasOwnProperty(field_str) ) {
-						console.log(watched_field, field_str, field_name, field);
-						watched_field.children[field_str].sum_watchers.push(field);
+				sum: function(iterable_str, field_str){
+					var iterable_arr = iterable_str.split('.'),
+						watched_field = getWatchedField(iterable_arr);
+					if (
+						watched_field.hasOwnProperty('children') &&
+						watched_field.fields.hasOwnProperty(field_str)
+					) {
+						watched_field.fields[field_str].sum_watchers.push(field_settings);
 					}
 					return this;
 				},
@@ -247,27 +250,27 @@ function Calculr(config)
 	}
 
 	/**
-	 * @param {object} calculator
+	 * @param {object} parent_calculator
 	 * @param {string} field_name
 	 * @param {object} field_settings
 	 * @param {object} data
 	 * @param {object} tmp_data
 	 */
-	function addCalculatorField(calculator, field_name, field_settings, data, tmp_data) {
+	function buildFieldCalculator(parent_calculator, field_name, field_settings, data, tmp_data) {
 		// Is field data stored or just temporary?
 		var field_data = field_settings.is_tmp ? tmp_data : data;
-		var child_calculator = calculator[field_name] = {};
-		Object.defineProperty(child_calculator, 'parent', {
+		var field_calculator = parent_calculator[field_name] = {};
+		Object.defineProperty(field_calculator, 'parent', {
 			writable: false,
 			configurable: false,
 			value: function(){
-				return calculator;
+				return parent_calculator;
 			}
 		});
 
-		// IF field type isn't "category" or "list"...
-		if ( ['category','list'].indexOf(field_settings.type) < 0 ) {
-			Object.defineProperties(child_calculator, {
+		// IF field type isn't "category" or "iterable"...
+		if ( ['category','iterable'].indexOf(field_settings.type) < 0 ) {
+			Object.defineProperties(field_calculator, {
 				val: {
 					writable: false,
 					configurable: false,
@@ -276,13 +279,14 @@ function Calculr(config)
 							var val = arguments[0];
 							// Check if field can be assigned
 							if ( !field_settings.is_assignable ) {
-								console.log('This field cannot be assigned');
-								return false;
+								console.error('Field \''+field_settings.name+'\' cannot be assigned');
+								return field_calculator;
 							}
-							this.update(val);
+							field_calculator.update(val);
 							// TODO: update all watchers
 							Calculr.onUpdate(Calculr);
-							return this;
+							console.log(field_calculator, field_settings);
+							return field_calculator;
 						}
 						return field_data[field_name];
 					}
@@ -293,7 +297,7 @@ function Calculr(config)
 					value: function(val) {
 						// Check if value passes all validation
 						if ( !field_settings.validators.every(function (a) {return a(val)}) ) {
-							console.log('invalid value');
+							console.error('invalid value');
 							return false;
 						}
 						field_data[field_name] = val;
@@ -303,34 +307,34 @@ function Calculr(config)
 
 			$.each(field_settings.classes, function(i, field_class){
 				Calculr.classes[field_class] = Calculr.classes[field_class] || [];
-				Calculr.classes[field_class].push(child_calculator);
+				Calculr.classes[field_class].push(field_calculator);
 			});
 
 			if ( typeof field_data[field_name] === 'undefined' ) {
 				field_data[field_name] = field_settings.default;
 			}
-		} else { // IF field type IS "category" or "list"
+		} else { // IF field type IS "category" or "iterable"
 			var child_data = data[field_name] = data[field_name] || {};
 			var tmp_child_data = tmp_data[field_name] = tmp_data[field_name] || {};
 
 			switch ( field_settings.type ) {
 				case 'category':
 					// FOR each child field...
-					$.each(field_settings.children, function(child_field_name, child_field_settings){
-						addCalculatorField(child_calculator, child_field_name, child_field_settings, child_data, tmp_child_data);
+					$.each(field_settings.fields, function(child_field_name, child_field_settings){
+						buildFieldCalculator(field_calculator, child_field_name, child_field_settings, child_data, tmp_child_data);
 					});
 					break;
-				case 'list':
-					Object.defineProperty(child_calculator, 'array', {
+				case 'iterable':
+					Object.defineProperty(field_calculator, 'array', {
 						writable: false,
 						configurable: false,
 						value: {}
 					});
-					var array_calculator = child_calculator.array;
+					var array_calculator = field_calculator.array;
 					Object.defineProperty(array_calculator, 'parent', {
 						configurable: false,
 						value: function(){
-							return child_calculator;
+							return field_calculator;
 						}
 					});
 
@@ -342,7 +346,7 @@ function Calculr(config)
 						addArrayItemCalculator(array_calculator, uid, array_data, tmp_array_data);
 					});
 
-					Object.defineProperty(child_calculator, 'add', {
+					Object.defineProperty(field_calculator, 'add', {
 						configurable: false,
 						value: function () {
 							var item = addArrayItemCalculator(array_calculator, create_uid(3, array_data), array_data, tmp_array_data);
@@ -355,12 +359,12 @@ function Calculr(config)
 						var array_item_calculator = array_calculator[uid] = {};
 						var data = array_data[uid] = array_data[uid] || {};
 						var tmp_data = tmp_array_data[uid] = tmp_array_data[uid] || {};
-						$.each(field_settings.children, function(child_field_name, child_field_settings){
+						$.each(field_settings.fields, function(child_field_name, child_field_settings){
 							if ( ['delete','parent'].indexOf(child_field_name) >= 0 ) {
-								console.log("'"+child_field_name+"' is a protected method name");
+								console.error("'"+child_field_name+"' is a protected method name");
 								return true;
 							}
-							addCalculatorField(array_item_calculator, child_field_name, child_field_settings, data, tmp_data);
+							buildFieldCalculator(array_item_calculator, child_field_name, child_field_settings, data, tmp_data);
 						});
 						Object.defineProperties(array_item_calculator, {
 							delete: {

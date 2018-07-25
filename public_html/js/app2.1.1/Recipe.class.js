@@ -15,7 +15,7 @@ function Recipe()
 		fields: {
 			settings: {
 				type: 'category',
-				children: {
+				fields: {
 					unit: {
 						type: 'string',
 						default: 'oz',
@@ -51,10 +51,10 @@ function Recipe()
 			},
 			oils: {
 				type: 'category',
-				children: {
+				fields: {
 					list: {
-						type: 'list',
-						children: {
+						type: 'iterable',
+						fields: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							oil_id: 'string',
 							name: 'string', // todo: make foreign
@@ -99,13 +99,6 @@ function Recipe()
 							return Helper.sum('list', 'weight').round(2);
 						}
 					},
-					percent: {
-						class: 'weight',
-						is_assignable: false,
-						calculate: function(Helper) {
-							return Helper.sum('list', 'percent');
-						}
-					},
 					naoh_weight: {
 						class: 'weight',
 						is_assignable: false,
@@ -120,6 +113,9 @@ function Recipe()
 							return Helper.sum('list', 'koh_weight').round(2);
 						}
 					},
+					percent: function(Helper) {
+						return Helper.sum('list', 'percent'); // FIXME: .sum is still not adding sum_watchers correctly
+					},
 					cost: function(Helper){
 						return Helper.sum('list', 'cost').round(2);
 					}
@@ -127,10 +123,10 @@ function Recipe()
 			},
 			lyes: {
 				type: 'category',
-				children: {
+				fields: {
 					naoh: {
 						type: 'category',
-						children: {
+						fields: {
 							percent: {
 								calculate: function(Helper) {
 									return 1 - Helper.watch('parent.koh.percent');
@@ -153,7 +149,7 @@ function Recipe()
 					},
 					koh: {
 						type: 'category',
-						children: {
+						fields: {
 							percent: {
 								calculate: function(Helper) {
 									return 1 - Helper.watch('parent.naoh.percent');
@@ -188,7 +184,7 @@ function Recipe()
 			},
 			liquids: {
 				type: 'category',
-				children: {
+				fields: {
 					weight: {
 						class: 'weight',
 						is_assignable: false,
@@ -197,8 +193,8 @@ function Recipe()
 						}
 					},
 					list: {
-						type: 'list',
-						children: {
+						type: 'iterable',
+						fields: {
 							// todo: make foreign 'oil_key'=>['name','cost_per_unit','naoh_sap','koh_sap']
 							name: 'string', // todo: make foreign
 							cost_per_unit: {}, // todo: make foreign
@@ -226,10 +222,10 @@ function Recipe()
 			},
 			additives: {
 				type: 'category',
-				children: {
+				fields: {
 					list: {
-						type: 'list',
-						children: {
+						type: 'iterable',
+						fields: {
 							name: 'string',
 							cost_per_unit: {}, // todo: make foreign
 							output_type: {
