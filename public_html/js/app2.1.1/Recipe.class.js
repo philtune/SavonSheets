@@ -12,7 +12,7 @@ function Recipe()
 	var recipe_Calculr = new Calculr({
 		data: data,
 		tmp_data: {},
-		properties: {
+		fields: {
 			settings: {
 				type: 'category',
 				children: {
